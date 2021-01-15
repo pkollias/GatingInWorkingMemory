@@ -66,17 +66,6 @@ def main():
     X_s = StandardScaler().fit_transform(X.transpose()).transpose()
 
 
-    # num_conditions = conditions_events_filter_dict['unit_condition_fr_dims'][0]
-    # num_timepoints = conditions_events_filter_dict['unit_condition_fr_dims'][1]
-    # num_units = len(conditions_events_filter_dict['unit_ind_list'])
-    # X_pre_dpca = np.array([np.ravel(unit_array.reshape(num_conditions, num_timepoints).transpose())
-    #                        for unit_array
-    #                        in X.transpose()]).reshape(num_units, num_timepoints, num_conditions)
-    # dpca = dPCA.dPCA(labels='st', regularizer='auto')
-
-
-    # unit_condition_fr_dims = conditions_events_filter_dict['unit_condition_fr_dims']
-    # unit_ind_list = conditions_events_filter_dict['unit_ind_list']
     pca = PCA()
     X_pca = pca.fit_transform(X).transpose()
     X_s_pca = pca.fit_transform(X_s).transpose()

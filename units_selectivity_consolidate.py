@@ -24,7 +24,6 @@ def main():
 
     for version_fr in ['WindowSampleShift', 'WindowDelayShift']:
 
-        # anova_time_results file load parameters
         v_fr_params = anova_version_fr_params(version_fr)
         t_start = v_fr_params['t_start']
         t_end = v_fr_params['t_end']
@@ -38,7 +37,6 @@ def main():
         if path.exists(target_filename):
             continue
 
-        physiology_df = physiology
         physiology_dict = {}
 
         for u_iloc in range(len(units)):
@@ -79,58 +77,3 @@ def main():
 
 
 main()
-
-
-import matplotlib.pyplot as plt
-
-def cumul_distr_from_series(series):
-    cf_count = scipy.stats.cumfreq(np.array(series),
-                                   numbins=1000,
-                                   defaultreallimits=(0, 1)).cumcount
-    return (cf_count - min(cf_count)) / (max(cf_count) - min(cf_count))
-
-df = pd.concat([units, physiology_df], axis=1)
-
-for area in ['PFC', 'Stri', 'IT']:
-
-    df_area = df.loc[df['Area'].eq(area)]
-
-    # Gating modulation scatter plot
-    color_list = ['#d817a5', '#48b213', '#727272']
-    line_list = ['PFC', 'Stri', 'IT']
-    color = dict(zip(line_list, color_list))
-
-
-    ax1 = df_area.plot.scatter(x='GatingModulation', y='PreDistModulation', c=color[area])
-    lims = (-.5, 5.5)
-    ax1.set_ylim(lims)
-    ax1.set_xlim(lims)
-    ax1.plot(list(lims), list(lims), color='k')
-    ax1.plot(list(lims), [1, 1], color='k', ls=':')
-    ax1.plot([1, 1], list(lims), color='k', ls=':')
-    ax1.set_xlabel('Gating Modulation ($FR_{gating}/FR_{fixation}$)')
-    ax1.set_ylabel('PreDist Modulation ($FR_{predist}/FR_{fixation}$)')
-    ax1.set_title(area)
-    plt.savefig('Modulation_{0:s}.png'.format(area), format='png')
-    plt.close()
-
-
-# Depth of selectivity cum hist
-for period in ['Overall', 'Distractor']:
-
-    fig = plt.figure()
-
-    for area in ['PFC', 'Stri', 'IT']:
-
-        period_str = 'DepthOfSelectivityIndex_{0:s}'.format(period)
-        df_drop = df_area.drop(df_area.loc[df_area[period_str].gt(1)].index)
-        # line = df_drop[period_str].dropna().sort_values().cumsum() / df_drop[period_str].sum()
-        ax2.plot(np.linspace(0, 1, 1000), cumul_distr_from_series(df_drop[period_str].dropna()), color=color[area])
-        # ax2 = df_drop[period_str].hist(cumulative=True, density=1, bins=2000, color=color[area])
-
-    ax2.set_xlabel('Depth of Stimulus Selectivity Index')
-    ax2.set_ylabel('Cumulative Distribution of Population')
-    ax2.set_title('{0:s} - {1:s}'.format(area, period))
-    plt.savefig('DoSSI_{0:s}_{1:s}.png'.format(area, period), format='png')
-    plt.close()
-

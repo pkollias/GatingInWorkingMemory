@@ -69,9 +69,12 @@ def main():
             # group data by pca condition
             condition_groupping = events_conditions_collection.groupby(events_conditions_collection['PCA_Condition'])
 
+            # dictionary of unit_dicts -> dictionary of pca_conditions_dicts -> dictionary of events_lists/timeseries -> list of firing rates
+            # aka timeseries for every event for every condition for every unit
             unit_cond_dict = {cond: {event_index: timebin_fr_dict[event_index] for event_index in event_index_vals}
                               for cond, event_index_vals
                               in condition_groupping.groups.items()}
+            # whether all conditions in analysis have at least one event
             valid_conditions = not bool(set.difference(set(condition_list), set(unit_cond_dict.keys())))
 
             unit_dict = {'unit_cond_dict': unit_cond_dict,

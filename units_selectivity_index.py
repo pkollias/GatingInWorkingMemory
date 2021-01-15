@@ -46,6 +46,10 @@ def main():
 
     for version_fr in ['WindowSampleShift', 'WindowDelayShift']:
 
+        if version_fr == 'WindowDelayShift':
+            gating_label = gating_label + 'Delay'
+            dist_label = dist_label + 'Delay'
+
         unit_selectivity_index = {}
 
         # anova_time_results file load parameters

@@ -57,6 +57,8 @@ def main():
     if path.exists(target_filename):
         exit()
 
+    # dictionary of unit_dicts -> dictionary of pca_conditions_dicts -> dictionary of events_lists/timeseries -> list of firing rates
+    # aka timeseries for every event for every condition for every unit
     pca_condition_events_dict = md.np_loader(src_filename)
 
     unit_ind_list = []
@@ -64,30 +66,44 @@ def main():
     num_timebins = len(interval_split_to_bins_onset(t_start, t_end, timebin, timestep))
     unit_condition_fr_dims = (-1, num_timebins) ### TODO: correct for right number of rows? (len(condition_list), num_timebins)
 
+    # for every unit
     for unit_ind in pca_condition_events_dict.keys():
+
+        # if not multiunit, belongs in area of interest, and has at least one event from all pca_conditions
         if units.loc[unit_ind]['UnitNum'] != 0 and units.loc[unit_ind]['RatingCode'] != 7 and units.loc[unit_ind]['Area'] in area_list \
                 and pca_condition_events_dict[unit_ind]['valid_conditions']:
 
             exceed_thr = lambda condition_fr_dict: len(condition_fr_dict) >= counts_thr
+            # if all pca_conditions have minimum number of events
             if np.all(list(map(exceed_thr, pca_condition_events_dict[unit_ind]['unit_cond_dict'].values()))):
 
+                # firing rate template for timeseries
                 unit_condition_fr = np.empty((0, num_timebins), float)
 
+                # for every pca_condition
                 for condition in condition_list:
+                    # get list of all timeseries for that pca_condition for that unit
                     condition_events_fr = list(pca_condition_events_dict[unit_ind]['unit_cond_dict'][condition].values())
+                    # set number of timeseries that will go into finalized table for that pca_condition (threshold if balanced or max otherwise)
                     counts = counts_thr if balance else len(condition_events_fr)
+                    # counts x num_timebins sized list of timeseries
                     condition_events_counts_fr = sample(condition_events_fr, counts)
+                    # convert to array and average if necessary
                     condition_fr = np.average(condition_events_counts_fr, axis=0).reshape((1, -1)) if average else np.array(condition_events_counts_fr)
-
+                    # append to list of pca_conditions
+                    # if not averaged list will be (num_pca_conditions * counts) x num_timebins with each pca_condition blocked in sets of counts
                     unit_condition_fr = np.append(unit_condition_fr, condition_fr, axis=0)
 
+                # reshape to (num_pca_conditions * counts * num_timebins) x 1
+                # where each condition is blocked in sets of instances where each instance is blokced in its timeseries
+                # [pca_cond_1_instance_1_t0, pca_cond_1_instance_1_t1, ..., pca_cond_1_instance_2_t0, ..., pca_cond_2_instance_1_t0, ...]
                 unit_condition_fr = unit_condition_fr.reshape((-1))
+                # append to list of units
                 unit_ind_list.append(unit_ind)
                 pca_matrix.append(unit_condition_fr)
 
     pca_matrix = np.array(pca_matrix)
     conditions_events_filter_dict = {'pca_matrix': pca_matrix,
-                                     'unit_condition_fr_dims': unit_condition_fr_dims,
                                      'unit_ind_list': unit_ind_list}
 
     md.np_saver(conditions_events_filter_dict, target_filename)
