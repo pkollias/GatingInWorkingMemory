@@ -1,5 +1,6 @@
 import sys
 from rec import *
+from rec_stats import *
 from pca_format import *
 from random import sample
 
@@ -19,6 +20,7 @@ def main():
 
     # version parameters
     v_pca_params = pca_generate_conditions(version_pca)
+    condition_columns = v_pca_params['condition_columns']
     condition_list = v_pca_params['condition_list']
 
     v_fr_params = anova_version_fr_params(version_fr)
@@ -52,7 +54,7 @@ def main():
     target_filename = md.proc_dest_path(path.join('BehavioralUnits', 'PCA', version_pca,
                                                   behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
                                                   pca_filter_params_str(filter_params_list_str, counts_thr, area_list_str), 'filter'),
-                                        'conditions_events_filter_dict.pkl')
+                                        'conditions_events_filter_obj.pkl')
     print(target_filename)
     if path.exists(target_filename):
         exit()
@@ -61,10 +63,15 @@ def main():
     # aka timeseries for every event for every condition for every unit
     pca_condition_events_dict = md.np_loader(src_filename)
 
-    unit_ind_list = []
-    pca_matrix = []
     num_timebins = len(interval_split_to_bins_onset(t_start, t_end, timebin, timestep))
-    unit_condition_fr_dims = (-1, num_timebins) ### TODO: correct for right number of rows? (len(condition_list), num_timebins)
+    num_instances = 1 if average else counts_thr
+    num_conditions = len(condition_list)
+    unit_condition_fr_dims = (-1, num_timebins)
+    # unit_ind_list = []
+    # pca_matrix = []
+
+    pbt = PopulationBehavioralTimeseries(shape=(0, num_conditions, num_instances, num_timebins), condition_labels=condition_columns,
+                                         timebins={'version_fr': version_fr, 'timebin': timebin, 'timestep': timestep})
 
     # for every unit
     for unit_ind in pca_condition_events_dict.keys():
@@ -77,8 +84,8 @@ def main():
             # if all pca_conditions have minimum number of events
             if np.all(list(map(exceed_thr, pca_condition_events_dict[unit_ind]['unit_cond_dict'].values()))):
 
-                # firing rate template for timeseries
-                unit_condition_fr = np.empty((0, num_timebins), float)
+                # create behavioral timeseries instance for current unit
+                ubt = pbt.derive_unit(unit_ind)
 
                 # for every pca_condition
                 for condition in condition_list:
@@ -90,23 +97,19 @@ def main():
                     condition_events_counts_fr = sample(condition_events_fr, counts)
                     # convert to array and average if necessary
                     condition_fr = np.average(condition_events_counts_fr, axis=0).reshape((1, -1)) if average else np.array(condition_events_counts_fr)
-                    # append to list of pca_conditions
-                    # if not averaged list will be (num_pca_conditions * counts) x num_timebins with each pca_condition blocked in sets of counts
-                    unit_condition_fr = np.append(unit_condition_fr, condition_fr, axis=0)
 
-                # reshape to (num_pca_conditions * counts * num_timebins) x 1
-                # where each condition is blocked in sets of instances where each instance is blokced in its timeseries
-                # [pca_cond_1_instance_1_t0, pca_cond_1_instance_1_t1, ..., pca_cond_1_instance_2_t0, ..., pca_cond_2_instance_1_t0, ...]
-                unit_condition_fr = unit_condition_fr.reshape((-1))
-                # append to list of units
-                unit_ind_list.append(unit_ind)
-                pca_matrix.append(unit_condition_fr)
+                    # uct_shape = (counts, num_timebins)
+                    # create condition timeseries instance for current unit current condition
+                    uct = ubt.derive_unit_condition(condition_levels=condition)
+                    uct.set_data(condition_fr)
 
-    pca_matrix = np.array(pca_matrix)
-    conditions_events_filter_dict = {'pca_matrix': pca_matrix,
-                                     'unit_ind_list': unit_ind_list}
+                    ubt.add_condition(uct)
 
-    md.np_saver(conditions_events_filter_dict, target_filename)
+                pbt.add_unit(ubt)
+
+
+
+    md.np_saver(pbt, target_filename)
 
 
 main()

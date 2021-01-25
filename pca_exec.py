@@ -51,7 +51,7 @@ def main():
     src_filename = md.proc_dest_path(path.join('BehavioralUnits', 'PCA', version_pca,
                                                behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
                                                pca_filter_params_str(filter_params_list_str, counts_thr, area_list_str), 'filter'),
-                                     'conditions_events_filter_dict.pkl')
+                                     'conditions_events_filter_obj.pkl')
     target_filename = md.proc_dest_path(path.join('BehavioralUnits', 'PCA', version_pca,
                                                   behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
                                                   pca_filter_params_str(filter_params_list_str, counts_thr, area_list_str), 'results'),
@@ -60,7 +60,7 @@ def main():
     if path.exists(target_filename):
         exit()
 
-    conditions_events_filter_dict = md.np_loader(src_filename)
+    pbt = md.np_loader(src_filename)
 
     X = conditions_events_filter_dict['pca_matrix'].transpose()
     X_s = StandardScaler().fit_transform(X.transpose()).transpose()
