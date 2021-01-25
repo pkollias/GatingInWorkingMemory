@@ -70,7 +70,8 @@ def main():
     # unit_ind_list = []
     # pca_matrix = []
 
-    pbt = PopulationBehavioralTimeseries(shape=(0, num_conditions, num_instances, num_timebins), condition_labels=condition_columns)
+    pbt = PopulationBehavioralTimeseries(shape=(0, num_conditions, num_instances, num_timebins), condition_labels=condition_columns,
+                                         timebins={'version_fr': version_fr, 'timebin': timebin, 'timestep': timestep})
 
     # for every unit
     for unit_ind in pca_condition_events_dict.keys():
@@ -99,7 +100,7 @@ def main():
 
                     # uct_shape = (counts, num_timebins)
                     # create condition timeseries instance for current unit current condition
-                    uct = ubt.derive_unit_condition(condition_level=condition)
+                    uct = ubt.derive_unit_condition(condition_levels=condition)
                     uct.set_data(condition_fr)
 
                     ubt.add_condition(uct)
