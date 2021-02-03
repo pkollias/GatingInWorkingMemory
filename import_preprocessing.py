@@ -145,7 +145,7 @@ def main():
                                        sorted_parts.Subject, sorted_parts.Date, sorted_parts.SessID))
     # remove unnecessary columns
     sorted_parts.drop(['Subject', 'Date', 'SessID'], axis=1, inplace=True)
-    # typcasting
+    # typecasting
     columns = ['Session', 'ChanNum']
     types = ['category', 'int']
     sorted_parts = sorted_parts.astype(dict(zip(columns, types)))

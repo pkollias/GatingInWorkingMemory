@@ -10,7 +10,7 @@ def anova_version_fr_params(version_fr):
         timebin = 50
         timestep = 25
         event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
-    elif version_fr == 'ConcatPCA':
+    elif version_fr == 'ConcatFactor':
         t_start = -300
         t_end = 1300
         timebin = 150
@@ -207,27 +207,27 @@ def anova_version_aov_params(version_aov, version_fr):
 
 
 
-def pca_generate_conditions(version_pca):
+def factor_generate_conditions(version_factor):
 
-    if version_pca == 'RuleCueStimulusGating':
+    if version_factor == 'RuleCueStimulusGating':
         condition_columns = ['RuleCueCategory', 'StageStimSpecialized', 'GatingCondSpecialized']
         condition_list = list(product(['C11', 'C12'], ['S11', 'S12'], ['Gating', 'PostDist', 'Target'])) +\
                          list(product(['C21', 'C22'], ['S21', 'S22'], ['Gating', 'PostDist', 'Target'])) +\
                          list(product(['C21', 'C22'], ['S11', 'S12'], ['PreDist', 'PostDist'])) +\
                          list(product(['C11', 'C12'], ['S21', 'S22'], ['PreDist', 'PostDist']))
-    elif version_pca == 'RuleGroupStimulusGating':
+    elif version_factor == 'RuleGroupStimulusGating':
         condition_columns = ['RuleGroup', 'StageStimSpecialized', 'GatingCondSpecialized']
         condition_list = list(product([1], ['S11', 'S12'], ['Gating', 'PostDist', 'Target'])) +\
                          list(product([2], ['S21', 'S22'], ['Gating', 'PostDist', 'Target'])) +\
                          list(product([2], ['S11', 'S12'], ['PreDist', 'PostDist'])) +\
                          list(product([1], ['S21', 'S22'], ['PreDist', 'PostDist']))
-    elif version_pca == 'StimulusGating':
+    elif version_factor == 'StimulusGating':
         condition_columns = ['StageStimSpecialized', 'GatingCondSpecialized']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['PreDist', 'Gating', 'PostDist', 'Target']))
-    elif version_pca == 'RuleStimGating':
+    elif version_factor == 'RuleStimGating':
         condition_columns = ['RuleStimCategory', 'GatingCondSpecialized']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['Cue', 'PreDist', 'Gating', 'PostDist', 'Target']))
-    elif version_pca == 'RuleStimStimulusGating':
+    elif version_factor == 'RuleStimStimulusGating':
         condition_columns = ['RuleStimCategory', 'StageStimSpecialized', 'GatingCondSpecialized']
         condition_list = list(product(['S11', 'S12'], ['S11', 'S12'], ['Gating', 'PostDist', 'Target'])) +\
                          list(product(['S21', 'S22'], ['S21', 'S22'], ['Gating', 'PostDist', 'Target'])) +\
@@ -239,7 +239,7 @@ def pca_generate_conditions(version_pca):
 
 
 
-def pca_version_filter_params(version_filter):
+def factor_version_filter_params(version_filter):
 
     filter_params_list = version_filter.split('_')
     filter_params_list_str = ''.join(sorted(filter_params_list))
@@ -258,7 +258,7 @@ def pca_version_filter_params(version_filter):
 
 
 
-def pca_version_units_area_list(version_units):
+def factor_version_units_area_list(version_units):
 
     area_list = version_units.split('_')
     area_list_str = ''.join(sorted(area_list))
