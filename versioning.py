@@ -266,3 +266,10 @@ def factor_version_units_area_list(version_units):
     return {'area_list': area_list,
             'area_list_str': area_list_str}
 
+def factor_version_units_subject_list(version_subjects):
+
+    subject_list = version_subjects.split('_')
+    subject_list_str = ''.join(sorted(subject_list))
+
+    return {'subject_list': subject_list,
+            'subject_list_str': subject_list_str}

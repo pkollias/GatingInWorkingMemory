@@ -13,8 +13,9 @@ def main():
     version_factor = args[1]
     version_fr = args[2]
     version_filter = args[3]
-    version_units = args[4]
-    counts_thr = int(args[5])
+    version_areas = args[4]
+    version_subjects = args[5]
+    counts_thr = int(args[6])
 
 
 
@@ -37,23 +38,29 @@ def main():
         exit()
     filter_params_list_str = v_filter_params['filter_params_list_str']
 
-    v_units_area_list = factor_version_units_area_list(version_units)
+    v_units_area_list = factor_version_units_area_list(version_areas)
     area_list = v_units_area_list['area_list']
     area_list_str = v_units_area_list['area_list_str']
+
+    v_units_subject_list = factor_version_units_subject_list(version_subjects)
+    subject_list = v_units_subject_list['subject_list']
+    subject_list_str = v_units_subject_list['subject_list_str']
+
+    units_str = '_'.join([area_list_str, subject_list_str])
 
 
 
     # load data and init vars, tables, and slices
     md = MetaData()
-    db = md.db_base_loader(['units'])
-    units = db['units']
+    db = md.db_base_loader(['units', 'sessions'])
+    units, sessions = db['units'], db['sessions']
 
     src_filename = md.proc_dest_path(path.join('BehavioralUnits', 'Factorization', version_factor,
                                                behunit_params_str(version_fr, timebin, timestep, t_start, t_end), 'wrangle'),
                                      'conditions_events_dict.pkl')
     target_filename = md.proc_dest_path(path.join('BehavioralUnits', 'Factorization', version_factor,
                                                   behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
-                                                  factor_filter_params_str(filter_params_list_str, counts_thr, area_list_str), 'filter'),
+                                                  factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'filter'),
                                         'conditions_events_filter_obj.pkl')
     print(target_filename)
     if path.exists(target_filename):
@@ -78,7 +85,8 @@ def main():
 
         # if not multiunit, belongs in area of interest, and has at least one event from all factor_conditions
         if units.loc[unit_ind]['UnitNum'] != 0 and units.loc[unit_ind]['RatingCode'] != 7 and units.loc[unit_ind]['Area'] in area_list \
-                and factor_condition_events_dict[unit_ind]['valid_conditions']:
+                and factor_condition_events_dict[unit_ind]['valid_conditions'] \
+                and sessions.loc[units.loc[unit_ind].Session].Subject in subject_list:
 
             exceed_thr = lambda condition_fr_dict: len(condition_fr_dict) >= counts_thr
             # if all factor_conditions have minimum number of events

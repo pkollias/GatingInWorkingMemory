@@ -15,8 +15,9 @@ def main():
     version_factor = args[1]
     version_fr = args[2]
     version_filter = args[3]
-    version_units = args[4]
-    counts_thr = int(args[5])
+    version_areas = args[4]
+    version_subjects = args[5]
+    counts_thr = int(args[6])
 
 
 
@@ -38,9 +39,15 @@ def main():
         exit()
     filter_params_list_str = v_filter_params['filter_params_list_str']
 
-    v_units_area_list = factor_version_units_area_list(version_units)
+    v_units_area_list = factor_version_units_area_list(version_areas)
     area_list = v_units_area_list['area_list']
     area_list_str = v_units_area_list['area_list_str']
+
+    v_units_subject_list = factor_version_units_subject_list(version_subjects)
+    subject_list = v_units_subject_list['subject_list']
+    subject_list_str = v_units_subject_list['subject_list_str']
+
+    units_str = '_'.join([area_list_str, subject_list_str])
 
 
 
@@ -51,11 +58,11 @@ def main():
 
     src_filename = md.proc_dest_path(path.join('BehavioralUnits', 'Factorization', version_factor,
                                                behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
-                                               factor_filter_params_str(filter_params_list_str, counts_thr, area_list_str), 'filter'),
+                                               factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'filter'),
                                      'conditions_events_filter_obj.pkl')
     target_filename = md.proc_dest_path(path.join('BehavioralUnits', 'Factorization', version_factor,
                                                   behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
-                                                  factor_filter_params_str(filter_params_list_str, counts_thr, area_list_str), 'results'),
+                                                  factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'results'),
                                         'factor_results.pkl')
     print(target_filename)
     if path.exists(target_filename):
@@ -87,3 +94,5 @@ def main():
 
 
 main()
+
+
