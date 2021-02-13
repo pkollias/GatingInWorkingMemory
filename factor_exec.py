@@ -70,10 +70,14 @@ def main():
 
     pbt = md.np_loader(src_filename)
 
+
+
+
+
+
     pbt_pca = pbt.base_to_PCA()
     X_pre_pca = StandardScaler().fit_transform(pbt_pca.data.transpose()).transpose()
-    # X_pca = pca.fit_transform(X_pre_pca)
-
+    X_pca = PCA().fit_transform(X_pre_pca)
 
     pbt_dpca = pbt.base_to_dPCA()
     X_pre_dpca = pbt_dpca.data
@@ -81,13 +85,12 @@ def main():
     mean_shape = X_pre_dpca_mean.shape
     X_pre_dpca_mean_2d = X_pre_dpca_mean.reshape((mean_shape[0], -1))
     X_pre_dpca_demean = StandardScaler(with_std=False).fit_transform(X_pre_dpca_mean_2d.transpose()).transpose().reshape(mean_shape)
-    dpca = dPCA.dPCA(labels='sgt', regularizer='auto')
+    dpca = dPCA.dPCA(labels=factor_dpca_labels_mapping(version_factor), regularizer='auto')
     dpca.protect = ['t']
     X_dpca = dpca.fit_transform(X_pre_dpca_demean, X_pre_dpca)
 
-
-    factor_results = {'X': X, 'X_pca': X_pca,
-                   'X_s': X_s, 'X_s_pca': X_s_pca}
+    factor_results = {'X_pre_pca': X, 'X_pca': X_pca, 'pbt_pca': pbt_pca,
+                      'X_pre_dpca_demean': X_pre_dpca_demean, 'X_pre_dpca': X_pre_dpca, 'X_dpca': X_dpca, 'pbt_dpca': pbt_dpca}
 
     md.np_saver(factor_results, target_filename)
 

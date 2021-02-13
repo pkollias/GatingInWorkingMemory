@@ -206,6 +206,17 @@ class MetaData:
         return np.nan if pd.isna(row['GatingCondExtended']) else \
                stage_index_to_enumeration_suffix(row['StageIndex'], row['NumPre'], row['GatingCondExtended'])
 
+    def df_PostStageStimSpecialized(self, row):
+
+        sss = row['StageStimSpecialized']
+        gcs = row['GatingCondSpecialized']
+        return sss if gcs in ['PostDist', 'Target'] else np.nan
+
+    def df_PostRuleStimCategory(self, row):
+
+        rsc = row['RuleStimCategory']
+        gcs = row['GatingCondSpecialized']
+        return rsc if gcs in ['PostDist', 'Target'] else np.nan
 
     def beh_unit_fr_cond_col(self, y, step, segment):
         return '{0:s}_step{1:04.0f}ms_{2:04.0f}_{2:04.0f}'.format(y, step, segment[0], segment[1])

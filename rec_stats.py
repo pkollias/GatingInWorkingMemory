@@ -7,16 +7,18 @@ class PopulationBehavioralTimeseries():
 
     def __init__(self, shape=(0, 0, 0, 0), dim_order=['Units', 'Conditions', 'Instances', 'Timebins'],
                  condition_levels=[], condition_labels=[], timebins={'version_fr': np.nan, 'timebin': np.nan, 'timestep': np.nan}):
-
         self.data = np.empty(shape)
         self.base_shape = self.data.shape
         self.dim_order = dim_order
         self.format = 'Base'
-
         self.unit_inds = []
         self.condition_levels = condition_levels
         self.condition_labels = condition_labels
         self.timebins = timebins
+
+    def pbt_from_data(self, data, condition_levels=[], condition_labels=[], timebins={'version_fr': np.nan, 'timebin': np.nan, 'timestep': np.nan}):
+        pbt = PopulationBehavioralTimeseries(condition_levels=condition_levels, condition_labels=condition_labels, timebins=timebins)
+        pbt.set_data(data)
 
     def get_current_shape(self):
         return self.data.shape
@@ -42,7 +44,6 @@ class PopulationBehavioralTimeseries():
         pbt_pca.data = self.data.reshape(base_shape[0], np.product(base_shape[1:])).transpose()
         pbt_pca.dim_order = ['_'.join(dim_order[1:]), dim_order[0]]
         pbt_pca.format = 'PCA'
-
         return pbt_pca
 
     def PCA_to_base(self):
@@ -51,7 +52,6 @@ class PopulationBehavioralTimeseries():
         pbt.data = self.data.transpose().reshape(self.base_shape)
         pbt.dim_order = [dim_order[-1]] + dim_order[:-1][0].split('_')
         pbt.format = 'Base'
-
         return pbt
 
     def average_instances(self):
@@ -65,7 +65,6 @@ class PopulationBehavioralTimeseries():
         new_shape = tuple(new_shape_list)
         pbt.data = pbt.data.mean(axis=instances_dim_index).reshape(new_shape)
         pbt.base_shape = new_base_shape
-
         return pbt
 
     def data_drop_instance_dim(self):
@@ -109,7 +108,6 @@ class PopulationBehavioralTimeseries():
         pbt_cond_nd.condition_levels = condition_levels_by_dim
         # base
         pbt_cond_nd.format = 'Conditions'
-
         return pbt_cond_nd
 
     def conditions_to_dPCA(self):
@@ -119,7 +117,6 @@ class PopulationBehavioralTimeseries():
         pbt_dpca.data = pbt_dpca.data.transpose(new_dim_order_index)
         pbt_dpca.dim_order = itemgetter(*new_dim_order_index)(pbt_dpca.dim_order)
         pbt_dpca.format = 'dPCA'
-
         return pbt_dpca
 
     def base_to_dPCA(self):

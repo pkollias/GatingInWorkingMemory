@@ -233,6 +233,9 @@ def factor_generate_conditions(version_factor):
                          list(product(['S21', 'S22'], ['S21', 'S22'], ['Gating', 'PostDist', 'Target'])) +\
                          list(product(['S21', 'S22'], ['S11', 'S12'], ['PreDist', 'PostDist'])) +\
                          list(product(['S11', 'S12'], ['S21', 'S22'], ['PreDist', 'PostDist']))
+    elif version_factor == 'PostRuleStimStimulus':
+        condition_columns = ['PostRuleStimCategory', 'PostStageStimSpecialized']
+        condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['S11', 'S12', 'S21', 'S22']))
 
     return {'condition_columns': condition_columns,
             'condition_list': condition_list}
@@ -273,3 +276,12 @@ def factor_version_units_subject_list(version_subjects):
 
     return {'subject_list': subject_list,
             'subject_list_str': subject_list_str}
+
+def factor_dpca_labels_mapping(version_factor):
+
+    if version_factor == 'StimulusGating':
+        return 'sgt'
+    elif version_factor == 'RuleStimGating':
+        return 'mgt'
+    elif version_factor == 'PostRuleStimStimulus':
+        return 'mst'
