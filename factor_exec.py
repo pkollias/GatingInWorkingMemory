@@ -70,27 +70,49 @@ def main():
 
     pbt = md.np_loader(src_filename)
 
-
-
-
+    smooth_data = np.empty(pbt.data.shape)
+    smoother = SignalSmoothing(signal.correlate, signal.windows.gaussian(4, 1))
+    for index in list(product(*[list(range(el)) for el in pbt.data.shape[:3]])):
+        smooth_data[index] = smoother.smoothen(pbt.data[index])
+    pbt.set_data(smooth_data)
 
 
     pbt_pca = pbt.base_to_PCA()
     X_pre_pca = StandardScaler().fit_transform(pbt_pca.data.transpose()).transpose()
-    X_pca = PCA().fit_transform(X_pre_pca)
+    pca = PCA()
+    X_pca = pca.fit_transform(X_pre_pca)
+    pca_dict = {'X_pre_pca': X_pre_pca,
+                'X_pca': X_pca,
+                'pca': pca,
+                'pbt_pca': PopulationBehavioralTimeseries(condition_levels=pbt_pca.condition_levels,
+                                                          condition_labels=pbt_pca.condition_labels,
+                                                          timebins=pbt_pca.timebins),
+                'pca_base_shape': pbt_pca.base_shape}
 
-    pbt_dpca = pbt.base_to_dPCA()
-    X_pre_dpca = pbt_dpca.data
-    X_pre_dpca_mean = pbt_dpca.average_instances().data_drop_instance_dim()
-    mean_shape = X_pre_dpca_mean.shape
-    X_pre_dpca_mean_2d = X_pre_dpca_mean.reshape((mean_shape[0], -1))
-    X_pre_dpca_demean = StandardScaler(with_std=False).fit_transform(X_pre_dpca_mean_2d.transpose()).transpose().reshape(mean_shape)
-    dpca = dPCA.dPCA(labels=factor_dpca_labels_mapping(version_factor), regularizer='auto')
-    dpca.protect = ['t']
-    X_dpca = dpca.fit_transform(X_pre_dpca_demean, X_pre_dpca)
 
-    factor_results = {'X_pre_pca': X, 'X_pca': X_pca, 'pbt_pca': pbt_pca,
-                      'X_pre_dpca_demean': X_pre_dpca_demean, 'X_pre_dpca': X_pre_dpca, 'X_dpca': X_dpca, 'pbt_dpca': pbt_dpca}
+    if average:
+        dpca_dict = {}
+    else:
+        pbt_dpca = pbt.base_to_dPCA()
+        X_pre_dpca = pbt_dpca.data
+        X_pre_dpca_mean = pbt_dpca.average_instances().get_data_without_instance_dim()
+        mean_shape = X_pre_dpca_mean.shape
+        X_pre_dpca_mean_2d = X_pre_dpca_mean.reshape((mean_shape[0], -1))
+        X_pre_dpca_demean = StandardScaler(with_std=False).fit_transform(X_pre_dpca_mean_2d.transpose()).transpose().reshape(mean_shape)
+        dpca = dPCA.dPCA(labels=factor_dpca_labels_mapping(version_factor), regularizer='auto')
+        dpca.protect = ['t']
+        X_dpca = dpca.fit_transform(X_pre_dpca_demean, X_pre_dpca)
+        dpca_dict = {'X_pre_dpca_demean': X_pre_dpca_demean,
+                     'X_pre_dpca': X_pre_dpca,
+                     'X_dpca': X_dpca,
+                     'dpca': dpca,
+                     'pbt_dpca': PopulationBehavioralTimeseries(condition_levels=pbt_dpca.condition_levels,
+                                                                condition_labels=pbt_dpca.condition_labels,
+                                                                timebins=pbt_dpca.timebins),
+                     'dpca_base_shape': pbt_dpca.base_shape}
+
+    factor_results = {'pca': pca_dict,
+                      'dpca': dpca_dict}
 
     md.np_saver(factor_results, target_filename)
 

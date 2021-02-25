@@ -224,9 +224,15 @@ def factor_generate_conditions(version_factor):
     elif version_factor == 'StimulusGating':
         condition_columns = ['StageStimSpecialized', 'GatingCondSpecialized']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['PreDist', 'Gating', 'PostDist', 'Target']))
+    elif version_factor == 'StimulusGatingBool':
+        condition_columns = ['StageStimSpecialized', 'GatingBoolSpecialized']
+        condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['Gating', 'Dist']))
     elif version_factor == 'RuleStimGating':
         condition_columns = ['RuleStimCategory', 'GatingCondSpecialized']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['Cue', 'PreDist', 'Gating', 'PostDist', 'Target']))
+    elif version_factor == 'RuleStimGatingBool':
+        condition_columns = ['RuleStimCategory', 'GatingBoolSpecialized']
+        condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['Gating', 'Dist']))
     elif version_factor == 'RuleStimStimulusGating':
         condition_columns = ['RuleStimCategory', 'StageStimSpecialized', 'GatingCondSpecialized']
         condition_list = list(product(['S11', 'S12'], ['S11', 'S12'], ['Gating', 'PostDist', 'Target'])) +\
@@ -285,3 +291,7 @@ def factor_dpca_labels_mapping(version_factor):
         return 'mgt'
     elif version_factor == 'PostRuleStimStimulus':
         return 'mst'
+    elif version_factor == 'StimulusGatingBool':
+        return 'sgt'
+    elif version_factor == 'RuleStimGatingBool':
+        return 'mgt'

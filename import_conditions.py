@@ -28,6 +28,13 @@ def main():
     conditions['GatingCondSpecialized'] = [None if gc is None else gc + ('Delay' if sc == md.specs['DelayOnset'] else '')
                                           for gc, sc
                                           in zip(list(conditions.GatingCondExtended), list(conditions.StageCode))]
+    conditions['GatingBoolSpecialized'] = [None if gcs is None else
+                                           np.nan if type(gcs) == float and np.isnan(gcs) else
+                                           gcs if 'Gating' in gcs else
+                                           'Dist' + ('Delay' if sc == md.specs['DelayOnset'] else '') if 'Dist' in gcs else
+                                           np.nan
+                                          for gcs, sc
+                                          in zip(list(conditions.GatingCondSpecialized), list(conditions.StageCode))]
 
     prev_trialnum = [np.nan, np.nan] + list(events['TrialNum'])[:-2]
     prev_session = [np.nan, np.nan] + list(events['Session'])[:-2]
@@ -114,12 +121,14 @@ def main():
 
 
     # typecasting
-    columns = ['Catch', 'GatingCondExtended', 'GatingCondSpecialized', 'GatingCond_From_To_GatingCondExtended', 'GatingCond_From_To_GatingCondSpecialized',
+    columns = ['Catch', 'GatingCondExtended', 'GatingCondSpecialized', 'GatingBoolSpecialized',
+               'GatingCond_From_To_GatingCondExtended', 'GatingCond_From_To_GatingCondSpecialized',
                'StageStimExtended', 'StageStimSpecialized', 'PrevStageStimExtended', 'PrevStageStimSpecialized',
                'PostDistCategory', 'RuleCueCategory', 'RuleStimCategory', 'RuleGroup', 'PrevDistractorSpecialized',
                'DistractorSerialPosition', 'GatedStimulusSerialPosition', 'GatingCondStageStimCategory', 'BarStatus', 'StimOccurrence',
                'PostStageStimSpecialized', 'PostRuleStimCategory']
-    types = ['category', 'category', 'category', 'category', 'category',
+    types = ['category', 'category', 'category', 'category',
+             'category', 'category',
              'category', 'category', 'category', 'category',
              'category', 'category', 'category', 'category', 'category',
              'category', 'category', 'category', 'category', 'category',

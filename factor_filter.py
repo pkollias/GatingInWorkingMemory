@@ -109,7 +109,7 @@ def main():
                     # uct_shape = (counts, num_timebins)
                     # create condition timeseries instance for current unit current condition
                     uct = ubt.derive_unit_condition(condition_levels=condition)
-                    uct.set_data(condition_fr)
+                    uct.set_base_data(condition_fr)
 
                     ubt.add_condition(uct)
 
