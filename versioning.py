@@ -16,6 +16,12 @@ def anova_version_fr_params(version_fr):
         timebin = 150
         timestep = 25
         event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
+    elif version_fr == 'ConcatFactor2':
+        t_start = -600
+        t_end = 1600
+        timebin = 150
+        timestep = 25
+        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
     elif version_fr == 'ConcatExtended':
         t_start = -50
         t_end = 2000
@@ -239,9 +245,16 @@ def factor_generate_conditions(version_factor):
                          list(product(['S21', 'S22'], ['S21', 'S22'], ['Gating', 'PostDist', 'Target'])) +\
                          list(product(['S21', 'S22'], ['S11', 'S12'], ['PreDist', 'PostDist'])) +\
                          list(product(['S11', 'S12'], ['S21', 'S22'], ['PreDist', 'PostDist']))
-    elif version_factor == 'PostRuleStimStimulus':
-        condition_columns = ['PostRuleStimCategory', 'PostStageStimSpecialized']
+    elif version_factor == 'PostStimulusRuleStim':
+        condition_columns = ['PostStageStimSpecialized', 'PostRuleStimCategory']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['S11', 'S12', 'S21', 'S22']))
+    elif version_factor == 'GatPostStimulusRuleStim':
+        condition_columns = ['GatPostStageStimSpecialized', 'GatPostRuleStimCategory']
+        condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['S11', 'S12', 'S21', 'S22']))
+    elif version_factor == 'RuleStimGatingNull':
+        condition_columns = ['RuleStimCategory', 'GatingNullCondSpecialized']
+        condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['PreDist', 'PostDist']))
+
 
     return {'condition_columns': condition_columns,
             'condition_list': condition_list}
@@ -289,9 +302,13 @@ def factor_dpca_labels_mapping(version_factor):
         return 'sgt'
     elif version_factor == 'RuleStimGating':
         return 'mgt'
-    elif version_factor == 'PostRuleStimStimulus':
-        return 'mst'
+    elif version_factor == 'PostStimulusRuleStim':
+        return 'smt'
+    elif version_factor == 'GatPostStimulusRuleStim':
+        return 'smt'
     elif version_factor == 'StimulusGatingBool':
         return 'sgt'
     elif version_factor == 'RuleStimGatingBool':
+        return 'mgt'
+    elif version_factor == 'RuleStimGatingNull':
         return 'mgt'

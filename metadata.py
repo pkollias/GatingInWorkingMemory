@@ -98,8 +98,9 @@ class MetaData:
             pickle.Pickler(f).dump(variable)
 
     def np_loader(self, path):
-        with open(path, 'rb') as f:
-            return pickle.Unpickler(f).load()
+        return pd.read_pickle(path)
+        # with open(path, 'rb') as f:
+        #     return pickle.Unpickler(f).load()
     
     def image_to_group_image_pair(self, im):
         group_ind, im_ind = np.unravel_index(int(im)-1, (2, 2), order='F')
@@ -217,6 +218,24 @@ class MetaData:
         rsc = row['RuleStimCategory']
         gcs = row['GatingCondSpecialized']
         return rsc if gcs in ['PostDist', 'Target'] else np.nan
+
+    def df_GatPostStageStimSpecialized(self, row):
+
+        sss = row['StageStimSpecialized']
+        gcs = row['GatingCondSpecialized']
+        return sss if gcs in ['Gating', 'PostDist'] else np.nan
+
+    def df_GatPostRuleStimCategory(self, row):
+
+        rsc = row['RuleStimCategory']
+        gcs = row['GatingCondSpecialized']
+        return rsc if gcs in ['Gating', 'PostDist'] else np.nan
+
+    def df_GatingNullCondSpecialized(self, row):
+
+        gcs = row['GatingCondSpecialized']
+        sss = row['StageStimSpecialized']
+        return gcs if sss == 'S00' else np.nan
 
     def beh_unit_fr_cond_col(self, y, step, segment):
         return '{0:s}_step{1:04.0f}ms_{2:04.0f}_{2:04.0f}'.format(y, step, segment[0], segment[1])

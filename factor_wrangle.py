@@ -71,7 +71,7 @@ def main():
 
             # dictionary of unit_dicts -> dictionary of factor_conditions_dicts -> dictionary of events_lists/timeseries -> list of firing rates
             # aka timeseries for every event for every condition for every unit
-            unit_cond_dict = {cond: {event_index: timebin_fr_dict[event_index] for event_index in event_index_vals}
+            unit_cond_dict = {cond: event_index_vals
                               for cond, event_index_vals
                               in condition_groupping.groups.items()}
             # whether all conditions in analysis have at least one event

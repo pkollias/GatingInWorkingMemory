@@ -322,7 +322,7 @@ class MultiSpikeTrain(SpikeTrain):
 
 class SignalSmoothing:
 
-    def __init__(self, func: Callable=signal.correlate, window: np.ndarray=MetaData.filt_win_gauss):
+    def __init__(self, func: Callable=signal.convolve, window: np.ndarray=MetaData.filt_win_gauss):
 
         self.func = func
         self.window = window
@@ -330,6 +330,41 @@ class SignalSmoothing:
     def smoothen(self, data: np.ndarray):
 
          return self.func(data, self.window, mode='same')/sum(self.window)
+
+
+
+class TimebinInterval:
+
+    def __init__(self, timebin, timestep, t_start, t_end):
+
+        self.timebin = timebin
+        self.timestep = timestep
+        self.t_start = t_start
+        self.t_end = t_end
+
+    def num_of_bins(self):
+
+        return int(((self.t_end - self.t_start - self.timebin) / self.timestep) + 1)
+
+
+    def split_to_bins_onset(self):
+
+        timebin, timestep, t_start, t_end = self.timebin, self.timestep, self.t_start, self.t_end
+        return [int(onset)
+                for onset
+                in np.linspace(t_start, t_end - timebin, self.num_of_bins(), endpoint=True)]
+
+    def split_to_bins_offset(self):
+
+        timebin, timestep, t_start, t_end = self.timebin, self.timestep, self.t_start, self.t_end
+        return [int(offset)
+                for offset
+                in np.linspace(t_start + timebin, t_end, self.num_of_bins(), endpoint=True)]
+
+    def sub_interval(self, t_start, t_end):
+        return TimebinInterval(self.timebin, self.timestep, t_start, t_end)
+
+
 
 
 

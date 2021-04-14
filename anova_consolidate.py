@@ -44,12 +44,11 @@ def main():
 
             sess, channum, unitnum = unit_index
             src_filename = md.proc_dest_path(path.join('BehavioralUnits', 'Anova', version_aov,
-                                                       behunit_params_str(version_fr, timebin, timestep, t_start,
-                                                                          t_end),
-                                                       'time_anova', selection),
-                                             'time_anova_results_{0:s}_chan{1:03d}_unit{2:03d}.pkl'.
+                                                       behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
+                                                       'time_cluster', selection),
+                                             'time_anova_cluster_results_{0:s}_chan{1:03d}_unit{2:03d}.pkl'.
                                              format(sess, channum, unitnum))
-            unit_time_results = md.np_loader(src_filename)
+            unit_time_cluster_results = md.np_loader(src_filename)
 
             physiology_dict[selection][unit_index] = {}
             for x_i, cluster_results in unit_time_cluster_results.items():

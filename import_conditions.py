@@ -118,6 +118,11 @@ def main():
     conditions['PostStageStimSpecialized'] = conditions.apply(md.df_PostStageStimSpecialized, axis=1)
     conditions['PostRuleStimCategory'] = conditions.apply(md.df_PostRuleStimCategory, axis=1)
 
+    conditions['GatPostStageStimSpecialized'] = conditions.apply(md.df_GatPostStageStimSpecialized, axis=1)
+    conditions['GatPostRuleStimCategory'] = conditions.apply(md.df_GatPostRuleStimCategory, axis=1)
+
+    conditions['GatingNullCondSpecialized'] = conditions.apply(md.df_GatingNullCondSpecialized, axis=1)
+
 
 
     # typecasting
@@ -126,13 +131,15 @@ def main():
                'StageStimExtended', 'StageStimSpecialized', 'PrevStageStimExtended', 'PrevStageStimSpecialized',
                'PostDistCategory', 'RuleCueCategory', 'RuleStimCategory', 'RuleGroup', 'PrevDistractorSpecialized',
                'DistractorSerialPosition', 'GatedStimulusSerialPosition', 'GatingCondStageStimCategory', 'BarStatus', 'StimOccurrence',
-               'PostStageStimSpecialized', 'PostRuleStimCategory']
+               'PostStageStimSpecialized', 'PostRuleStimCategory', 'GatPostStageStimSpecialized', 'GatPostRuleStimCategory',
+               'GatingNullCondSpecialized']
     types = ['category', 'category', 'category', 'category',
              'category', 'category',
              'category', 'category', 'category', 'category',
              'category', 'category', 'category', 'category', 'category',
              'category', 'category', 'category', 'category', 'category',
-             'category', 'category']
+             'category', 'category', 'category', 'category',
+             'category']
     conditions = conditions.astype(dict(zip(columns, types)))
     conditions_columns = columns
     conditions = conditions[events_index + conditions_columns]
