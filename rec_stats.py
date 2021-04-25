@@ -1,7 +1,6 @@
-import copy
 from metadata import *
 from itertools import product
-from operator import itemgetter
+from sklearn.preprocessing import StandardScaler
 from rec import TimebinInterval
 
 class PopulationBehavioralTimeseries():
@@ -111,6 +110,11 @@ class PopulationBehavioralTimeseries():
         records = df_base.iloc[index_list][['Unit', 'Condition', 'Instance']].to_records()
         return X, records
 
+    def to_PCA_scale_array(self):
+        X, records = self.to_PCA_array()
+        X_scale = StandardScaler().fit_transform(X.transpose()).transpose()
+        return (X, X_scale), records
+
 
 
     def to_dPCA_mean_array(self):
@@ -133,6 +137,13 @@ class PopulationBehavioralTimeseries():
         records = df_base.iloc[index_list][['Unit', 'Condition', 'Instance']].to_records()
         return X, records
 
+    def to_dPCA_mean_demean_array(self):
+        X_mean, records = self.to_dPCA_mean_array()
+        mean_shape = X_mean.shape
+        X__mean_2d = X_mean.reshape((mean_shape[0], -1))
+        X_mean_demean = StandardScaler(with_std=False).fit_transform(X__mean_2d.transpose()).transpose().reshape(mean_shape)
+        return (X_mean, X_mean_demean), records
+
     def to_dPCA_trial_array(self):
         # init params
         df_base = pd.concat([self.df, self.unfold_conditions_df()], axis=1)
@@ -151,7 +162,7 @@ class PopulationBehavioralTimeseries():
         X = X_pre.transpose(X_transpose_order)
         # unit, condition, instance information for reconstruction
         records = df_base.iloc[index_list][['Unit', 'Condition', 'Instance']].to_records()
-        return X, records,
+        return X, records
 
 
 
@@ -185,7 +196,6 @@ class FactorBehavioralTimeseries(PopulationBehavioralTimeseries):
         df_average.index.set_names(group_columns, inplace=True)
         df_average.reset_index(drop=False, inplace=True)
         return FactorBehavioralTimeseries(df_average, self.condition_labels, self.timebin_interval)
-
 
     def init_with_df(self): pass
     def get_unit_inds(self): pass

@@ -1,7 +1,7 @@
 import sys
 from rec import *
 from rec_stats import *
-from factor_format import *
+from rec_format import *
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
 from dPCA import dPCA
@@ -50,7 +50,7 @@ def main():
                                      'conditions_events_filter_obj.pkl')
     target_filename = md.proc_dest_path(path.join('BehavioralUnits', 'Factorization', version_factor,
                                                   behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
-                                                  factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'results'),
+                                                  factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'results_join'),
                                         'factor_results.pkl')
     print(target_filename)
     if path.exists(target_filename):
@@ -91,7 +91,9 @@ def main():
     mean_shape = X_unit_dpca_mean.shape
     X_unit_dpca_mean_2d = X_unit_dpca_mean.reshape((mean_shape[0], -1))
     X_unit_dpca_mean_demean = StandardScaler(with_std=False).fit_transform(X_unit_dpca_mean_2d.transpose()).transpose().reshape(mean_shape)
-    dpca = dPCA.dPCA(labels=factor_dpca_labels_mapping(version_factor), regularizer='auto')
+    labels = factor_dpca_labels_mapping(version_factor)
+    join = factor_dpca_join_mapping(labels)
+    dpca = dPCA.dPCA(labels=labels, join=join, regularizer='auto')
     dpca.n_trials = counts_thr
     dpca.protect = ['t']
     X_factor_dpca_mean = dpca.fit_transform(X_unit_dpca_mean_demean, X_unit_dpca_instance)

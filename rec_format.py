@@ -1,4 +1,10 @@
-from metadata_format import *
+def behunit_params_str(version, timebin, timestep, t_start, t_end):
+
+    return '{0:s}_bin{1:04d}_step{2:04d}_t{3:04d}_t{4:04d}'.format(version, timebin, timestep, t_start, t_end).replace('-', 'n')
+
+
+#######
+# Anova
 
 def interaction_term(x_a, x_b):
     x_list = [x_a, x_b]
@@ -28,3 +34,11 @@ def filter_df_wrapper(df, column, wrapper, arg):
     mask = wrapper(df[column], arg)
     return {'mask': mask,
             'df': df.loc[mask]}
+
+
+#######
+# Factor
+
+def factor_filter_params_str(filter_params_list_str, counts_thr, area_list_str):
+
+    return '{0:s}_{1:s}_{2:03d}'.format(filter_params_list_str, area_list_str, counts_thr)

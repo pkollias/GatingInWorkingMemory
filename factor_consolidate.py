@@ -1,7 +1,7 @@
 import sys
 from rec import *
 from rec_stats import *
-from factor_format import *
+from rec_format import *
 
 
 def main():
@@ -44,19 +44,19 @@ def main():
 
     src_filename = md.proc_dest_path(path.join('BehavioralUnits', 'Factorization', version_factor,
                                                behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
-                                               factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'results'),
+                                               factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'results_join'),
                                      'factor_results.pkl')
     target_filename = [md.proc_dest_path(path.join('BehavioralUnits', 'Factorization', version_factor,
                                                   behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
-                                                  factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'consolidate', factor_method),
+                                                  factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'consolidate_join', factor_method),
                                         'factor_results_obj.pkl'),
                        md.proc_dest_path(path.join('BehavioralUnits', 'Factorization', version_factor,
                                                    behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
-                                                   factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'consolidate', factor_method),
+                                                   factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'consolidate_join', factor_method),
                                          'decomp_obj.pkl'),
                        md.proc_dest_path(path.join('BehavioralUnits', 'Factorization', version_factor,
                                                    behunit_params_str(version_fr, timebin, timestep, t_start, t_end),
-                                                   factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'consolidate', factor_method),
+                                                   factor_filter_params_str(filter_params_list_str, counts_thr, units_str), 'consolidate_join', factor_method),
                                          'X_unit.pkl')]
     print(target_filename)
     if all([path.exists(fn) for fn in target_filename]):

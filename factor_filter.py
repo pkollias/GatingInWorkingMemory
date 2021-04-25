@@ -1,7 +1,7 @@
 import sys
 from rec import *
 from rec_stats import *
-from factor_format import *
+from rec_format import *
 from random import sample, seed
 
 

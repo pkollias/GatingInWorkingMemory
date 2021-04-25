@@ -1,4 +1,4 @@
-from aov_format import *
+from rec_format import *
 from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
 from itertools import groupby

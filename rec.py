@@ -4,7 +4,6 @@ import scipy.sparse
 from astropy import units as qu
 from typing import Callable
 from metadata import *
-from metadata_db import *
 from versioning import *
 
 
@@ -364,6 +363,13 @@ class TimebinInterval:
     def sub_interval(self, t_start, t_end):
         return TimebinInterval(self.timebin, self.timestep, t_start, t_end)
 
+
+
+class Timeseries:
+
+    def __init__(self):
+
+        pass
 
 
 

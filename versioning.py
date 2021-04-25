@@ -1,6 +1,6 @@
 import pandas as pd
-from aov_format import interaction_term
-from itertools import product
+from rec_format import interaction_term
+from itertools import product, combinations, chain
 
 def anova_version_fr_params(version_fr):
 
@@ -233,6 +233,9 @@ def factor_generate_conditions(version_factor):
     elif version_factor == 'StimulusGatingBool':
         condition_columns = ['StageStimSpecialized', 'GatingBoolSpecialized']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['Gating', 'Dist']))
+    elif version_factor == 'StimulusGatingPreBool':
+        condition_columns = ['StageStimSpecialized', 'GatingCondSpecialized']
+        condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['Gating', 'PreDist']))
     elif version_factor == 'RuleStimGating':
         condition_columns = ['RuleStimCategory', 'GatingCondSpecialized']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['Cue', 'PreDist', 'Gating', 'PostDist', 'Target']))
@@ -308,7 +311,18 @@ def factor_dpca_labels_mapping(version_factor):
         return 'smt'
     elif version_factor == 'StimulusGatingBool':
         return 'sgt'
+    elif version_factor == 'StimulusGatingPreBool':
+        return 'sgt'
     elif version_factor == 'RuleStimGatingBool':
         return 'mgt'
     elif version_factor == 'RuleStimGatingNull':
         return 'mgt'
+
+def factor_dpca_join_mapping(labels):
+
+    cond_labels = labels.replace('t', '')
+    num_margins = len(cond_labels)
+    combs = list(chain.from_iterable(combinations(list(range(num_margins)), r + 1) for r in range(num_margins + 1)))
+    get_letters_from_inds = lambda inds: ''.join([cond_labels[ind] for ind in inds]) if bool(inds) else 't'
+    letters_list = lambda letters: [letters, letters + 't'] if letters != 't' else ['t']
+    return {get_letters_from_inds(inds): letters_list(get_letters_from_inds(inds)) for inds in combs}

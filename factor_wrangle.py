@@ -1,6 +1,6 @@
 import sys
 from rec import *
-from factor_format import *
+from rec_format import *
 
 
 def main():
