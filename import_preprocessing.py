@@ -23,8 +23,6 @@ Argument list:
 
 def main():
 
-    # TODO: make argument parsing define which tables are to be imported
-    # TODO: handle dependencies of struct imports in a way that forces all dependent imports to precede requested
     # TODO: obtain event.StageDuration from bhv files Stage structs
 
     args = sys.argv

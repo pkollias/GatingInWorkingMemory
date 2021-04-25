@@ -1,7 +1,6 @@
 from __future__ import annotations
 from typing import Union
 from rec_format import *
-from rec import *
 from rec_db import *
 
 
@@ -66,6 +65,8 @@ class BehavioralUnitFR(Analysis):
         elif type(unit_id) is tuple:
             self.load_from_ind(unit_id)
 
+    # TODO: add methods for constructing inspired from behunit_FR
+
     # IO
     def load_from_iloc(self, iloc: int) -> None:
         self.load_from_ind(self.db.tables['units'].iloc[iloc].name)
@@ -99,12 +100,6 @@ class DemixedPrincipalComponent(Analysis):
         self.params = DemixedPrincipalComponent.Params(*params) if type(params) is tuple else DemixedPrincipalComponent.Params(*params)
         self.pbt = None
         self.fbt = None
-
-    # def construct_behavioral_units(self):
-    #     beh_unit_inds_from_events_inds = lambda inds, unit_ind: [(*unit_ind, ind[1], ind[2]) for ind in inds]
-    #     for unit_ind in units.index:
-    #     behavioral_units_list = pd.DataFrame
-
     def assess_unit_events(self, unit_id: Union[int, tuple]) -> list:
 
         bufr = BehavioralUnitFR(self.db, (self.params.version_fr), unit_id)

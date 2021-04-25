@@ -7,10 +7,6 @@ from itertools import product
 
 def main():
 
-    ### TODO: class for firing rate versioning (firing rates for units, interval steps, times, ...)
-    ### TODO: class for dfs and filtering
-    ### TODO: class for all steps of anova (analysis version, selections, stats, intermediate results, clusters, ...)
-
     # load analysis parameters
     args = sys.argv
     u_iloc = int(args[1])

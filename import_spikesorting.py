@@ -14,8 +14,6 @@ Argument list:
 
 def main():
 
-    # TODO: handle dependencies of struct imports in a way that forces all dependent imports to precede requested
-
     args = sys.argv
     sess_iloc = int(args[2])
 

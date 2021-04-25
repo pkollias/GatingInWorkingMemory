@@ -9,8 +9,6 @@ from scipy import signal
 
 class MetaData:
 
-    # TODO: make pathing to different superstructs more robust and flexible
-
     env = Environment()
 
     # file system
