@@ -327,12 +327,7 @@ class Timeseries:
         pass
 
 
-
-
-
-
-
-### Misc ###
+# ### Misc ### #
 
 def resolve_to_interval(value):
 

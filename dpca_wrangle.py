@@ -3,24 +3,29 @@ from rec_analyses import *
 
 
 def main():
-
+    """ factor=, fr=, counts_thr=, [overwrite=] """
+    # args_version = ['factor=StimulusGating', 'fr=ConcatFactor2', 'counts_thr=20']
 
     # load analysis parameters
     args = sys.argv
-    version_factor = args[1]
-    version_fr = args[2]
+    args_version = args[1:]
+    version = parse_vars(args_version)
+    version['fr_thr'] = 100
 
-    dpca = DemixedPrincipalComponent(DataBase(['units', 'events', 'conditions']), (version_factor, version_fr))
+    # create analysis object
+    dpca = DemixedPrincipalComponent(DataBase(['units', 'events', 'conditions']), version)
 
+    # overwrite check
     target_filename = dpca.get_wrangle_filename()
     print(target_filename)
-    if path.exists(target_filename):
+    if path.exists(target_filename) and ('overwrite' not in version.keys() or not version['overwrite']):
         exit()
 
+    # mark units as valid based on number of events and
     units = dpca.db.tables['units']
-    valid_units = units.apply(lambda row: bool(dpca.assess_unit_events(row.name)), axis=1)
+    valid_units_events = units.apply(lambda row: dpca.assess_unit_events(row.name), axis=1)
 
-    md.np_saver(valid_units, target_filename)
+    dpca.db.md.np_saver(valid_units_events, target_filename)
 
 
 main()
