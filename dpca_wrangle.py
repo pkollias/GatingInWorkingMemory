@@ -3,17 +3,16 @@ from rec_analyses import *
 
 
 def main():
-    """ factor=, fr=, counts_thr=, [overwrite=] """
-    # args_version = ['factor=StimulusGating', 'fr=ConcatFactor2', 'counts_thr=20']
+    """ factor=, fr=, counts_thr=, fr_thr=, [overwrite=] """
+    # args_version = ['factor=StimulusGatingPreBool', 'fr=ConcatFactor2', 'counts_thr=15', 'fr_thr=100']
 
     # load analysis parameters
     args = sys.argv
     args_version = args[1:]
     version = parse_vars(args_version)
-    version['fr_thr'] = 100
 
     # create analysis object
-    dpca = DemixedPrincipalComponent(DataBase(['units', 'events', 'conditions']), version)
+    dpca = DemixedPrincipalComponent(DataBase(['trials', 'units', 'events', 'conditions']), version)
 
     # overwrite check
     target_filename = dpca.get_wrangle_filename()

@@ -48,8 +48,21 @@ class DataBase:
         events_conditions.set_index(events_index, drop=False, inplace=True)
         return events_conditions
 
+    # activity
+
+    def timestamp_interval_within_activity(self, start, end):
+        activity = self.tables['activity']
+        return (activity['SegmentStart'].le(start) & activity['SegmentEnd'].gt(start)).any() and \
+               (activity['SegmentStart'].le(end) & activity['SegmentEnd'].gt(end)).any()
+
+
 
 # ### Misc ### #
+
+
+def combine_columns(table, columns):
+    return list(zip(*[table[col] for col in columns]))
+
 
 def timestamp_interval_within_activity(interval_start, interval_end, activity_collection):
 

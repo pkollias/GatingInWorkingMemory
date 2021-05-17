@@ -3,6 +3,9 @@ from typing import Union
 from rec_format import *
 from versioning import *
 from rec_db import *
+from rec_stats import *
+from dPCA import dPCA
+from sklearn.preprocessing import StandardScaler
 
 
 class Analysis:
@@ -82,7 +85,7 @@ class BehavioralUnitFR(Analysis):
 class DemixedPrincipalComponent(Analysis):
 
     def __init__(self, db: DataBase, version: dict) -> DemixedPrincipalComponent:
-        # reqs: units, events, conditions
+        # reqs: trials, units, events, conditions
         self.db = db
         self.version = version
         self.pbt = None
@@ -95,7 +98,9 @@ class DemixedPrincipalComponent(Analysis):
         # functions for evaluating number of events for each condition for unit thresholded by mean firing rate
         group_inds = lambda group: group.index
         valid_timeseries_fr = lambda timeseries: np.mean(timeseries) < float(self.version['fr_thr'])
-        valid_events = lambda inds: [ind for ind in inds if valid_timeseries_fr(bufr.data[ind])]
+        valid_events = lambda inds: [ind for ind in inds
+                                     if valid_timeseries_fr(bufr.data[ind]) and
+                                        self.db.tables['trials'].loc[ind[0:2]].StopCondition == 1]
 
         #params
         v_factor_params = factor_generate_conditions(self.version['factor'])
@@ -114,6 +119,70 @@ class DemixedPrincipalComponent(Analysis):
                 break
         return events_inds
 
+    def pbt_from_behavioral_units(self, behavioral_units: pd.core.frame.DataFrame) -> PopulationBehavioralTimeseries:
+
+        # params
+        v_factor_params = factor_generate_conditions(self.version['factor'])
+        condition_columns = v_factor_params['condition_columns']
+        v_fr_params = anova_version_fr_params(self.version['fr'])
+        t_start = v_fr_params['t_start']
+        t_end = v_fr_params['t_end']
+        timebin = v_fr_params['timebin']
+        timestep = v_fr_params['timestep']
+
+        # init
+        timebin_interval = TimebinInterval(timebin, timestep, t_start, t_end)
+
+        data_list = []
+        # find units of behavioral units
+        bu_grouper = behavioral_units.groupby(self.db.md.preproc_imports['units']['index'])
+        # for every unit
+        for unit_ind, unit_group in bu_grouper:
+
+            # load firing rate data
+            bufr = BehavioralUnitFR(self.db, {'fr': self.version['fr']}, unit_ind)
+
+            # group by condition
+            bu_cond_grouper = unit_group.groupby(condition_columns)
+            # for every condition
+            for condition, cond_group in bu_cond_grouper:
+                # for every event
+                for ii, (_, event_entry) in enumerate(cond_group.iterrows()):
+                    event_ind = tuple(event_entry[self.db.md.preproc_imports['events']['index']])
+                    condition = tuple(event_entry[condition_columns])
+                    timeseries = bufr.data[event_ind]
+                    data_entry = [unit_ind, event_ind, condition, ii, timeseries]
+                    # append to data_list
+                    data_list.append(data_entry)
+
+        # create pbt
+        pbt = PopulationBehavioralTimeseries(condition_columns, timebin_interval)
+        pbt.add_data_rows_from_list(data_list)
+
+        return pbt
+
+    def exec(self, pbt: PopulationBehavioralTimeseries) -> tuple:
+
+        X_trial, records_trial = pbt.to_dPCA_trial_array()
+        X_pre, records = pbt.to_dPCA_mean_array()
+        X = self.demean_mean_X(X_pre)
+        labels = factor_dpca_labels_mapping(self.version['factor'])
+        join = factor_dpca_join_mapping(labels)
+        dpca_obj = dPCA.dPCA(labels=labels, join=join, regularizer='auto')
+        dpca_obj.n_trials = 5
+        dpca_obj.protect = ['t']
+        X_fit = dpca_obj.fit_transform(X, X_trial)
+        dpca_obj.join = dpca_obj._join # TODO: figure out why this throws bug if not added here
+
+        return dpca_obj, X_fit, X, X_trial, records, records_trial
+
+    def demean_mean_X(self, X_pre: np.ndarray) -> np.ndarray:
+
+        X_shape = X_pre.shape
+        X_pre_2d = X_pre.reshape((X_shape[0], -1))
+        X = StandardScaler(with_std=False).fit_transform(X_pre_2d.transpose()).transpose().reshape(X_shape)
+        return X
+
     # IO
     def get_wrangle_filename(self) -> str:
         version_fr = self.version['fr']
@@ -127,17 +196,43 @@ class DemixedPrincipalComponent(Analysis):
                                                    '{0:03d}'.format(counts_thr), 'wrangle'),
                                          'valid_units.pkl')
 
-    def get_assemble_filename(self) -> str:
+    def get_filter_filename(self) -> str:
         version_fr = self.version['fr']
         version_factor = self.version['factor']
         counts_thr = int(self.version['counts_thr'])
         v_fr_params = anova_version_fr_params(version_fr)
+        area_list_str = list_param_to_str(self.version['area_list'])
+        subject_str = list_param_to_str(self.version['subject'])
         return MetaData().proc_dest_path(path.join('BehavioralUnits', 'DemixedPCA', version_factor,
                                                    behunit_params_str(version_fr,
                                                                       v_fr_params['timebin'], v_fr_params['timestep'],
                                                                       v_fr_params['t_start'], v_fr_params['t_end']),
-                                                   '{0:03d}'.format(counts_thr), 'assemble',
-                                                   '_'.join([self.version['area_list'].replace('_', ''), self.version['area']]),
-                                                   self.version['mode']),
-                                         'assemble_seed_{0:04d}.pkl'.format(int(self.version['mode_seed'])))
+                                                   '{0:03d}'.format(counts_thr), 'filter',
+                                                   '_'.join([area_list_str, subject_str])),
+                                         'filter.pkl')
 
+    def get_exec_filename(self, filename) -> str:
+        version_fr = self.version['fr']
+        version_factor = self.version['factor']
+        counts_thr = int(self.version['counts_thr'])
+        v_fr_params = anova_version_fr_params(version_fr)
+        area_list_str = list_param_to_str(self.version['area_list'])
+        subject_str = list_param_to_str(self.version['subject'])
+        return MetaData().proc_dest_path(path.join('BehavioralUnits', 'DemixedPCA', version_factor,
+                                                   behunit_params_str(version_fr,
+                                                                      v_fr_params['timebin'], v_fr_params['timestep'],
+                                                                      v_fr_params['t_start'], v_fr_params['t_end']),
+                                                   '{0:03d}'.format(counts_thr), 'exec',
+                                                   '_'.join([area_list_str, subject_str]),
+                                                   self.version['area'],
+                                                   '_'.join([self.version['mode'], '{0:03d}'.format(int(self.version['mode_seed']))])),
+                                         '{0:s}.pkl'.format(filename))
+
+
+# ### Misc ### #
+
+def list_param_to_list(list_param):
+    return sorted(list_param.split('_'))
+
+def list_param_to_str(list_param):
+    return ''.join(list_param_to_list(list_param))

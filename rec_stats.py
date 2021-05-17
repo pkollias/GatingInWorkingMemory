@@ -69,11 +69,11 @@ class PopulationBehavioralTimeseries():
         return self.func_instances(group_columns, lambda x: list(np.std(np.array(list(x)), axis=0) / np.sqrt(len(x))))
 
     def crop_timeseries(self, t_start, t_end):
-        crop_start_ind = self.timebin_interval.split_to_bins_onset().index(t_start)
+        crop_start_ind = self.timebin_interval.split_to_bins_offset().index(t_start)
         crop_end_ind = self.timebin_interval.split_to_bins_offset().index(t_end)
         crop_slice = slice(crop_start_ind, crop_end_ind + 1)
         self.df['Timeseries'] = self.df['Timeseries'].apply(lambda x: x[crop_slice])
-        self.timebin_interval = self.timebin_interval.sub_interval(t_start, t_end)
+        self.timebin_interval = self.timebin_interval.sub_interval(t_start - self.timebin_interval.timebin, t_end)
 
 
 
