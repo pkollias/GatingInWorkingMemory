@@ -107,6 +107,15 @@ def main():
                                                  for (gcs, dsp) in
                                                  zip(list(conditions['GatingCondExtended']),
                                                      list(conditions['DistractorSerialPosition']))]
+    conditions['DistractorSerialPositionCentered'] = conditions.apply(md.df_DistractorSerialPositionCentered, axis=1)
+    conditions['GatedStimulusSerialPositionCentered'] = ['Gating' + ('' if gcs == 'Gating'
+                                                                     else '+' + dspc if gcs == 'PostDist'
+                                                                     else '-' + dspc)
+                                                         if gcs in ['Gating', 'PreDist', 'PostDist']
+                                                         else np.nan
+                                                         for (gcs, dspc) in
+                                                         zip(list(conditions['GatingCondExtended']),
+                                                             list(conditions['DistractorSerialPositionCentered']))]
     conditions['GatingCondStageStimCategory'] = conditions.apply(md.df_GatingCondStageStimCategory, axis=1)
     conditions['BarStatus'] = conditions.apply(md.df_BarStatus, axis=1)
     occurrence_columns = events_index + ['StageStimSpecialized']
@@ -130,14 +139,18 @@ def main():
                'GatingCond_From_To_GatingCondExtended', 'GatingCond_From_To_GatingCondSpecialized',
                'StageStimExtended', 'StageStimSpecialized', 'PrevStageStimExtended', 'PrevStageStimSpecialized',
                'PostDistCategory', 'RuleCueCategory', 'RuleStimCategory', 'RuleGroup', 'PrevDistractorSpecialized',
-               'DistractorSerialPosition', 'GatedStimulusSerialPosition', 'GatingCondStageStimCategory', 'BarStatus', 'StimOccurrence',
+               'DistractorSerialPosition', 'GatedStimulusSerialPosition',
+               'DistractorSerialPositionCentered', 'GatedStimulusSerialPositionCentered',
+               'GatingCondStageStimCategory', 'BarStatus', 'StimOccurrence',
                'PostStageStimSpecialized', 'PostRuleStimCategory', 'GatPostStageStimSpecialized', 'GatPostRuleStimCategory',
                'GatingNullCondSpecialized']
     types = ['category', 'category', 'category', 'category',
              'category', 'category',
              'category', 'category', 'category', 'category',
              'category', 'category', 'category', 'category', 'category',
-             'category', 'category', 'category', 'category', 'category',
+             'category', 'category',
+             'category', 'category',
+             'category', 'category', 'category',
              'category', 'category', 'category', 'category',
              'category']
     conditions = conditions.astype(dict(zip(columns, types)))

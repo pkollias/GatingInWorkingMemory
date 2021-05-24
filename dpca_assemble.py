@@ -4,8 +4,8 @@ from rec_analyses import *
 
 def main():
     """ factor=, fr=, counts_thr=, area_list=, subject=, area=, mode=, mode_seed=, [overwrite=] """
-    # args_version = ['factor=StimulusGating', 'fr=ConcatFactor2', 'counts_thr=20',
-    # 'area_list=PFC_Stri', 'subject=Oscar', 'area=PFC', 'mode=AreaShuffle', 'mode_seed=0']
+    # args_version = ['factor=StimulusGatingPreBool', 'fr=ConcatFactor2', 'counts_thr=15',
+    # 'area_list=PFC_Stri', 'subject=Gonzo_Oscar', 'area=PFC', 'mode=AreaShuffle', 'mode_seed=0']
 
     # load analysis parameters
     args = sys.argv
@@ -50,6 +50,8 @@ def main():
         area_counts = units['Area'].value_counts()
         min_size = area_counts.loc[list_param_to_list(dpca.version['area_list'])].min()
         area_units = units.loc[units['Area'].eq(area)].sample(min_size, random_state=0).index
+    elif dpca.version['mode'] == 'Full':
+        area_units = units.loc[units['Area'].eq(area)].index
 
     # isolate behavioral units of area selection
     area_behavioral_units = behavioral_units_filter.set_index(units_index).loc[area_units].reset_index()

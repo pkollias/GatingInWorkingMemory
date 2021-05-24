@@ -96,6 +96,12 @@ def anova_version_fr_params(version_fr):
         timebin = t_end - t_start
         timestep = timebin
         event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueDelay', 'StimDelay']}
+    elif version_fr == 'WindowDelayLate':
+        t_start = 200
+        t_end = 565
+        timebin = t_end - t_start
+        timestep = timebin
+        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueDelay', 'StimDelay']}
 
     return {'t_start': t_start,
             't_end': t_end,
@@ -177,6 +183,24 @@ def anova_version_aov_params(version_aov, version_fr):
         event_cnj_mask = [{'column': 'StageStimSpecialized',
                            'wrapper': pd.Series.ne,
                            'arg': 'S00'}]
+        if 'Delay' in version_fr:
+            event_cnj_mask = [{'column': 'StageStimSpecialized',
+                               'wrapper': pd.Series.ne,
+                               'arg': 'S00D'}]
+        group_column_list = ['RuleGroup']
+        x_factors = [x_a]
+    elif version_aov == 'GatedStimulusPostDistractorCentered':
+        selection_dict = {'column': 'GatedStimulusSerialPositionCentered',
+                          'list': ['Gating-1', 'Gating', 'Gating+1', 'Gating+2']}
+        x_a = 'RuleStimCategory'
+        levels_dict = {x_a: ['S11', 'S12', 'S21', 'S22']}
+        event_cnj_mask = [{'column': 'StageStimSpecialized',
+                           'wrapper': pd.Series.ne,
+                           'arg': 'S00'}]
+        if 'Delay' in version_fr:
+            event_cnj_mask = [{'column': 'StageStimSpecialized',
+                               'wrapper': pd.Series.ne,
+                               'arg': 'S00D'}]
         group_column_list = ['RuleGroup']
         x_factors = [x_a]
     elif version_aov == 'GatedGroup':
@@ -241,19 +265,7 @@ def anova_version_aov_params(version_aov, version_fr):
 
 def factor_generate_conditions(version_factor):
 
-    if version_factor == 'RuleCueStimulusGating':
-        condition_columns = ['RuleCueCategory', 'StageStimSpecialized', 'GatingCondSpecialized']
-        condition_list = list(product(['C11', 'C12'], ['S11', 'S12'], ['Gating', 'PostDist', 'Target'])) +\
-                         list(product(['C21', 'C22'], ['S21', 'S22'], ['Gating', 'PostDist', 'Target'])) +\
-                         list(product(['C21', 'C22'], ['S11', 'S12'], ['PreDist', 'PostDist'])) +\
-                         list(product(['C11', 'C12'], ['S21', 'S22'], ['PreDist', 'PostDist']))
-    elif version_factor == 'RuleGroupStimulusGating':
-        condition_columns = ['RuleGroup', 'StageStimSpecialized', 'GatingCondSpecialized']
-        condition_list = list(product([1], ['S11', 'S12'], ['Gating', 'PostDist', 'Target'])) +\
-                         list(product([2], ['S21', 'S22'], ['Gating', 'PostDist', 'Target'])) +\
-                         list(product([2], ['S11', 'S12'], ['PreDist', 'PostDist'])) +\
-                         list(product([1], ['S21', 'S22'], ['PreDist', 'PostDist']))
-    elif version_factor == 'StimulusGating':
+    if version_factor == 'StimulusGating':
         condition_columns = ['StageStimSpecialized', 'GatingCondSpecialized']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['PreDist', 'Gating', 'PostDist', 'Target']))
     elif version_factor == 'StimulusGatingBool':
@@ -268,12 +280,6 @@ def factor_generate_conditions(version_factor):
     elif version_factor == 'RuleStimGatingBool':
         condition_columns = ['RuleStimCategory', 'GatingBoolSpecialized']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['Gating', 'Dist']))
-    elif version_factor == 'RuleStimStimulusGating':
-        condition_columns = ['RuleStimCategory', 'StageStimSpecialized', 'GatingCondSpecialized']
-        condition_list = list(product(['S11', 'S12'], ['S11', 'S12'], ['Gating', 'PostDist', 'Target'])) +\
-                         list(product(['S21', 'S22'], ['S21', 'S22'], ['Gating', 'PostDist', 'Target'])) +\
-                         list(product(['S21', 'S22'], ['S11', 'S12'], ['PreDist', 'PostDist'])) +\
-                         list(product(['S11', 'S12'], ['S21', 'S22'], ['PreDist', 'PostDist']))
     elif version_factor == 'PostStimulusRuleStim':
         condition_columns = ['PostStageStimSpecialized', 'PostRuleStimCategory']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['S11', 'S12', 'S21', 'S22']))

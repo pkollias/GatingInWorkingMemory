@@ -4,8 +4,8 @@ from rec_analyses import *
 
 def main():
     """ factor=, fr=, counts_thr=, area_list=, subject=, [overwrite=] """
-    # args_version = ['factor=StimulusGating', 'fr=ConcatFactor2', 'counts_thr=20',
-    # 'area_list=PFC_Stri', 'subject=Oscar']
+    # args_version = ['factor=StimulusGatingPreBool', 'fr=ConcatFactor2', 'counts_thr=15',
+    # 'area_list=PFC_Stri', 'subject=Gonzo_Oscar']
 
     # load analysis parameters
     args = sys.argv
@@ -32,7 +32,7 @@ def main():
     area_list_units = units['Area'].isin(dpca.version['area_list'].split('_'))
     # subject units
     sessions = dpca.db.tables['sessions']
-    subject_sessions = sessions['Subject'].isin(dpca.version['subject'].split('_')).index
+    subject_sessions = sessions.loc[sessions['Subject'].isin(dpca.version['subject'].split('_'))].index
     subject_units = units['Session'].isin(subject_sessions)
     # apply filters
     dpca.db.tables['units'] = units.loc[valid_units & single_units & area_list_units & subject_units]

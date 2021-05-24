@@ -193,7 +193,6 @@ class MetaData:
         return occurrence_list
 
     def df_DistractorSerialPosition(self, row):
-
         def stage_index_to_enumeration_suffix(index, numpre, gatingcond):
             if gatingcond == 'PreDist':
                 return str(int(np.ceil(index / 2) - 1))
@@ -204,6 +203,13 @@ class MetaData:
 
         return np.nan if pd.isna(row['GatingCondExtended']) else \
                stage_index_to_enumeration_suffix(row['StageIndex'], row['NumPre'], row['GatingCondExtended'])
+
+    def df_DistractorSerialPositionCentered(self, row):
+        def stage_index_to_enumeration_suffix(index, numpre):
+            return str(int(np.abs(numpre + 2 - np.ceil(index / 2))))
+
+        return np.nan if pd.isna(row['GatingCondExtended']) else \
+            stage_index_to_enumeration_suffix(row['StageIndex'], row['NumPre'])
 
     def df_PostStageStimSpecialized(self, row):
 

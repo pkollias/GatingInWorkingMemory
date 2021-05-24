@@ -5,8 +5,8 @@ from rec import SignalSmoothing
 
 def main():
     """ factor=, fr=, counts_thr=, area_list=, subject=, area=, mode=, mode_seed=, [overwrite=] """
-    # args_version = ['factor=StimulusGatingPreBool', 'fr=ConcatFactor2', 'counts_thr=20',
-    # 'area_list=PFC_Stri', 'subject=Oscar', 'area=PFC', 'mode=AreaShuffle', 'mode_seed=0']
+    # args_version = ['factor=StimulusGatingPreBool', 'fr=ConcatFactor2', 'counts_thr=15',
+    # 'area_list=PFC_Stri', 'subject=Gonzo_Oscar', 'area=PFC', 'mode=AreaShuffle', 'mode_seed=0']
 
     # load analysis parameters
     args = sys.argv
@@ -30,6 +30,7 @@ def main():
     smoother = SignalSmoothing(signal.correlate, signal.windows.gaussian(9, 1.25))
     pbt = pbt_full.init_with_df(pbt_full.smooth_df(smoother))
     pbt.crop_timeseries(-50, 1000)
+    dpca.pbt = pbt
 
     # exec
     dpca_obj, X_fit, X, X_trial, records, records_trial = dpca.exec(pbt)

@@ -28,24 +28,23 @@ def main():
     date = sessions.loc[session].Date
     sessid = sessions.loc[session].SessID
     units_slice = units.loc[session]
-    for ui in range(len(units_slice)):
-        channum = units_slice.iloc[ui].ChanNum
-        unitnum = units_slice.iloc[ui].UnitNum
+    chan_grouper = units_slice.reset_index(drop=True).groupby('ChanNum')
+    for channum, chan_group in chan_grouper:
+
         sortmat = loadmat(md.preproc_dat_spike_path(subject, str(date),
                                                     'gatingwm_{0}_{1}_{2:03d}_chan{3:03d}.mat'.
                                                     format(subject.lower(), date, sessid, channum)))
 
-        def flatten(listlist):
-            return [item for innerlist in listlist for item in innerlist]
+        for unitnum in chan_group['UnitNum']:
 
-        unit_inds = np.array(flatten(sortmat['units'] == unitnum))
-        ts = np.array(flatten(sortmat['ts'][unit_inds]))
-        wvs = sortmat['wvs'][unit_inds, ]
-        numdatapoints = sessions.loc[session].TimeStamps
-        ts_sparse = scipy.sparse.coo_matrix(([True for _ in range(len(ts))], ([0 for _ in range(len(ts))], (ts-1).T)),
-                                            shape=(1, numdatapoints))
-        md.np_saver(ts_sparse, md.spike_dest_path('ts', session, channum, unitnum))
-        md.np_saver(wvs, md.spike_dest_path('wvs', session, channum, unitnum))
+            unit_inds = (sortmat['units'] == unitnum).reshape((-1,))
+            ts = np.array(flatten(sortmat['ts'][unit_inds]))
+            wvs = sortmat['wvs'][unit_inds, ]
+            numdatapoints = sessions.loc[session].TimeStamps
+            ts_sparse = scipy.sparse.coo_matrix(([True for _ in range(len(ts))], ([0 for _ in range(len(ts))], (ts-1).T)),
+                                                shape=(1, numdatapoints))
+            md.np_saver(ts_sparse, md.spike_dest_path('ts', session, channum, unitnum))
+            md.np_saver(wvs, md.spike_dest_path('wvs', session, channum, unitnum))
 
 
 main()

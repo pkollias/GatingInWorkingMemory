@@ -3,6 +3,7 @@ from rec import *
 from functools import reduce
 from rec_format import *
 from itertools import product
+from versioning import *
 
 
 def main():
@@ -86,11 +87,12 @@ def main():
     ec_mask = (selection_mask & levels_mask & cnj_mask)
     events_conditions_slice = events_conditions.loc[ec_mask][columns_events_conditions]
 
-    # merge into final events_conditions_df
+    # meracge into final events_conditions_df
     events_conditions_df = pd.merge(events_conditions_slice, trials_slice, on=trials_index)
     for x_i, levels_i in levels_dict.items():
         events_conditions_df[x_i].cat.set_categories(levels_i, inplace=True)
     events_conditions_df.set_index(events_index, inplace=True, drop=False)
+    events_conditions_df[selection_dict['column']].cat.set_categories(selection_dict['list'], inplace=True)
 
     # create final df by concatanating events_conditions_df and timebin_fr_df
     df = pd.concat([events_conditions_df, timebin_fr_df], join='inner', axis=1).sort_index()
@@ -98,8 +100,7 @@ def main():
     counts = df.groupby(columns_valid).size()
     # minimum number of events in table
     selection_level_combinations = list(product(*[selection_dict['list']] + list(levels_dict.values())))
-    all_combinations_in_df = not (bool(set(counts.index).difference(set(selection_level_combinations))) or
-                                  bool(set(selection_level_combinations).difference(set(counts.index))))
+    all_combinations_in_df = not bool(set(selection_level_combinations).difference(set(counts.index)))
     num_events = df.groupby(columns_valid).size().min()
     # if valid unit (all level combination values and exceeding min threshold)
     valid = all_combinations_in_df and num_events >= valid_thr
