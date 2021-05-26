@@ -470,16 +470,33 @@ class ClassificationAnalysis(Analysis):
     # IO
     def get_wrangle_filename(self) -> str:
         version_fr = self.version['fr']
-        version_factor = self.version['class']
+        version_class = self.version['class']
         version_balance = self.version['balance']
         counts_thr = int(self.version['counts_thr'])
         v_fr_params = anova_version_fr_params(version_fr)
-        return MetaData().proc_dest_path(path.join('BehavioralUnits', 'Classification', version_factor, version_balance,
+        return MetaData().proc_dest_path(path.join('BehavioralUnits', 'Classification', version_class, version_balance,
                                                    behunit_params_str(version_fr,
                                                                       v_fr_params['timebin'], v_fr_params['timestep'],
                                                                       v_fr_params['t_start'], v_fr_params['t_end']),
                                                    '{0:03d}'.format(counts_thr), 'wrangle'),
                                          'valid_units.pkl')
+
+    def get_filter_filename(self) -> str:
+        version_fr = self.version['fr']
+        version_class = self.version['class']
+        version_balance = self.version['balance']
+        counts_thr = int(self.version['counts_thr'])
+        v_fr_params = anova_version_fr_params(version_fr)
+        area_list_str = list_param_to_str(self.version['area_list'])
+        subject_str = list_param_to_str(self.version['subject'])
+        return MetaData().proc_dest_path(path.join('BehavioralUnits', 'Classification', version_class, version_balance,
+                                                   behunit_params_str(version_fr,
+                                                                      v_fr_params['timebin'], v_fr_params['timestep'],
+                                                                      v_fr_params['t_start'], v_fr_params['t_end']),
+                                                   '{0:03d}'.format(counts_thr), 'filter',
+                                                   '_'.join([area_list_str, subject_str]),
+                                                   self.version['area']),
+                                         'filter.pkl')
 
 
 # ### Misc ### #

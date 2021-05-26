@@ -15,7 +15,7 @@ def main():
     classifier = ClassificationAnalysis(DataBase(['trials', 'units', 'events', 'conditions']), version)
 
     # overwrite check
-    target_filename = dpca.get_wrangle_filename()
+    target_filename = classifier.get_wrangle_filename()
     print(target_filename)
     if path.exists(target_filename) and ('overwrite' not in version.keys() or not version['overwrite']):
         exit()
