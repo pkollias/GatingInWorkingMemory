@@ -4,17 +4,19 @@ from itertools import product, combinations, chain
 
 
 # Parser
-
 def parse_var(s):
     """ Parse a key, value pair, separated by '=' That's the reverse of ShellArgs.
     On the command line (argparse) a declaration will typically look like:
     foo=hello or foo="hello world" """
     items = s.split('=')
-    key = items[0].strip() # we remove blanks around keys, as is logical
+    key = items[0].strip()  # we remove blanks around keys, as is logical
     if len(items) > 1:
         # rejoin the rest:
         value = '='.join(items[1:])
-    return (key, value)
+        return key, value
+    else:
+        return None, None
+
 
 def parse_vars(items):
     """Parse a series of key-value pairs and return a dictionary """
@@ -24,7 +26,6 @@ def parse_vars(items):
             key, value = parse_var(item)
             d[key] = value
     return d
-
 
 
 # Versioning
@@ -235,7 +236,8 @@ def anova_version_aov_params(version_aov, version_fr):
         x_factors = [x_a]
     elif version_aov == 'PreviousStimulus':
         selection_dict = {'column': 'GatingCond_From_To_GatingCondSpecialized',
-                          'list': ['PreDist_From_To_PreDist', 'PreDist_From_To_Gating', 'Gating_From_To_PostDist', 'PostDist_From_To_PostDist', 'PostDist_From_To_Target']}
+                          'list': ['PreDist_From_To_PreDist', 'PreDist_From_To_Gating', 'Gating_From_To_PostDist',
+                                   'PostDist_From_To_PostDist', 'PostDist_From_To_Target']}
         x_a = 'PrevStageStimSpecialized'
         levels_dict = {x_a: ['S11', 'S12', 'S21', 'S22']}
         event_cnj_mask = [{'column': 'PrevStageStimSpecialized',
@@ -254,13 +256,18 @@ def anova_version_aov_params(version_aov, version_fr):
         group_column_list = ['RuleGroup']
         x_factors = [x_a]
 
-
     return {'selection_dict': selection_dict,
             'levels_dict': levels_dict,
             'event_cnj_mask': event_cnj_mask,
             'group_column_list': group_column_list,
             'x_factors': x_factors}
 
+
+def filter_df_wrapper(df, column, wrapper, arg):
+
+    mask = wrapper(df[column], arg)
+    return {'mask': mask,
+            'df': df.loc[mask]}
 
 
 def factor_generate_conditions(version_factor):
@@ -290,10 +297,8 @@ def factor_generate_conditions(version_factor):
         condition_columns = ['RuleStimCategory', 'GatingNullCondSpecialized']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['PreDist', 'PostDist']))
 
-
     return {'condition_columns': condition_columns,
             'condition_list': condition_list}
-
 
 
 def factor_version_filter_params(version_filter):
@@ -314,7 +319,6 @@ def factor_version_filter_params(version_filter):
             'filter_params_list_str': filter_params_list_str}
 
 
-
 def factor_version_units_area_list(version_units):
 
     area_list = version_units.split('_')
@@ -323,6 +327,7 @@ def factor_version_units_area_list(version_units):
     return {'area_list': area_list,
             'area_list_str': area_list_str}
 
+
 def factor_version_units_subject_list(version_subjects):
 
     subject_list = version_subjects.split('_')
@@ -330,6 +335,7 @@ def factor_version_units_subject_list(version_subjects):
 
     return {'subject_list': subject_list,
             'subject_list_str': subject_list_str}
+
 
 def factor_dpca_labels_mapping(version_factor):
 
@@ -350,11 +356,31 @@ def factor_dpca_labels_mapping(version_factor):
     elif version_factor == 'RuleStimGatingNull':
         return 'mgt'
 
+
 def factor_dpca_join_mapping(labels):
 
     cond_labels = labels.replace('t', '')
     num_margins = len(cond_labels)
     combs = list(chain.from_iterable(combinations(list(range(num_margins)), r + 1) for r in range(num_margins + 1)))
-    get_letters_from_inds = lambda inds: ''.join([cond_labels[ind] for ind in inds]) if bool(inds) else 't'
-    letters_list = lambda letters: [letters, letters + 't'] if letters != 't' else ['t']
+    def get_letters_from_inds(inds): return ''.join([cond_labels[ind] for ind in inds]) if bool(inds) else 't'
+    def letters_list(letters): return [letters, letters + 't'] if letters != 't' else ['t']
     return {get_letters_from_inds(inds): letters_list(get_letters_from_inds(inds)) for inds in combs}
+
+
+def classification_version_class(version_class):
+
+    if version_class == 'GatingPreBool':
+        condition_columns = ['GatingCondSpecialized']
+        condition_list = [['PreDist', 'Gating']]
+
+    return {'condition_columns': condition_columns,
+            'condition_list': condition_list}
+
+def classification_version_balance(version_balance):
+
+    if version_balance == 'Stimulus':
+        condition_columns = ['StageStimSpecialized']
+        condition_list = [['S11', 'S12', 'S21', 'S22']]
+
+    return {'condition_columns': condition_columns,
+            'condition_list': condition_list}

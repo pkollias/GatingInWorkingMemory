@@ -41,13 +41,21 @@ class DataBase:
     # events, conditions
 
     def generate_events_conditions(self, src: bool = False) -> pd.core.frame.DataFrame:
-        events_index = MetaData().preproc_imports['events']['index']
+        events_index = self.md.preproc_imports['events']['index']
         events = self.tables_src['events'].reset_index(drop=True) if src else self.tables['events'].reset_index(drop=True)
         conditions = self.tables_src['conditions'] if src else self.tables['conditions']
         events_conditions = pd.merge(events, conditions, on=events_index)
         events_conditions.set_index(events_index, drop=False, inplace=True)
         return events_conditions
 
+    # events, conditions, trials
+
+    def merge_events_conditions_trials(self, src: bool = False):
+        trials_index = self.md.preproc_imports['trials']['index']
+        events_index = self.md.preproc_imports['events']['index']
+        self.tables['events_conditions'] = pd.merge(self.tables['events_conditions'].reset_index(drop=True),
+                                                    self.tables['trials'].reset_index(drop=True),
+                                                    on=trials_index).set_index(events_index)
     # activity
 
     def timestamp_interval_within_activity(self, start, end):

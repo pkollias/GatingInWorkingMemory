@@ -10,7 +10,6 @@ def main():
     args = sys.argv
     args_version = args[1:]
     version = parse_vars(args_version)
-    version['fr_thr'] = 100
 
     # create analysis object
     dpca = DemixedPrincipalComponent(DataBase(['trials', 'units', 'events', 'conditions']), version)

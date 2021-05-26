@@ -1,5 +1,5 @@
 import sys
-from rec_analyses import *
+from rec_utils import *
 
 
 def main():
@@ -63,7 +63,7 @@ def main():
     # sample counts_thr events for every unit x condition (replace for Bootstrap)
     behavioral_units = area_conditions_grouper.sample(counts_thr, random_state=mode_seed, replace=dpca.version['mode'] == 'Bootstrap')
 
-    pbt = dpca.pbt_from_behavioral_units(behavioral_units)
+    pbt = pbt_from_behavioral_units(condition_columns, version['fr'], behavioral_units, dpca.db)
 
     dpca.db.md.np_saver(pbt, target_filename)
 

@@ -1,17 +1,18 @@
 from __future__ import annotations
 from typing import Union
 from rec import TimebinInterval
+from rec_db import *
 from rec_format import *
 from versioning import *
-from rec_db import *
 from dPCA import dPCA
+from copy import copy
+from itertools import chain
 from sklearn.preprocessing import StandardScaler
-
 
 
 class Analysis:
 
-    def __init__(self, db: DataBase) -> Analysis:
+    def __init__(self, db: DataBase) -> None:
         self.db = db
 
     def update_db_table(self, table_name: str, table: pd.core.frame.DataFrame) -> None:
@@ -21,7 +22,7 @@ class Analysis:
 class PermutationStatistic:
 
     rounding_decimal = 10
-    score_round = lambda self, x: round(x, self.rounding_decimal)
+    def score_round(self, x): return round(x, self.rounding_decimal)
 
     def __init__(self):
         self.observed = None
@@ -50,11 +51,69 @@ class PermutationStatistic:
         return (val - np.mean(shuffle_scores) / np.std(shuffle_scores)) if np.std(shuffle_scores) > 0 else 0
 
 
-class BehavioralUnitFR(Analysis):
+class ObjectTimeseries:
 
-    def __init__(self, db: DataBase, version: dict, unit_id: Union[int, tuple]=None) -> BehavioralUnitFR:
+    def __init__(self, timebin_interval: TimebinInterval=TimebinInterval(0, 0, 0, 0), series=None):
+        self.timebin_interval = timebin_interval
+        self.series = series
+
+    def set_series(self, series):
+        self.series = series
+
+    def crop_timeseries(self, t_start, t_end):
+        ''' t_start represents onset of first window and t_end represents offset of last window '''
+        crop_start_ind = self.timebin_interval.split_to_bins_offset().index(t_start)
+        crop_end_ind = self.timebin_interval.split_to_bins_offset().index(t_end)
+        crop_slice = slice(crop_start_ind, crop_end_ind + 1)
+        self.series = self.series[crop_slice]
+        self.timebin_interval = self.timebin_interval.sub_interval(t_start - self.timebin_interval.timebin, t_end)
+
+    def add_series_entry(self, entry, pos: int=-1):
+        ''' -1 for add to end or 0 for start '''
+        self.timebin_interval = copy(self.timebin_interval)
+        if pos == -1:
+            self.series.append(entry)
+            self.timebin_interval.t_end += self.timebin_interval.timestep
+        elif pos == 0:
+            self.series.insert(0, entry)
+            self.timebin_interval.t_start -= self.timebin_interval.timestep
+
+
+class TableOperator:
+
+    def __init__(self, df):
+        self.df = df
+        self.valid_assessed = None
+        self.valid = None
+        self.counts_min = None
+
+    def assess_conditions(self, columns, levels, counts_thr, return_full=True):
+        grouper = self.df.groupby(columns)
+        group_len = grouper.apply(len)
+        valid = set(levels) == set(grouper.groups.keys()) and (group_len >= counts_thr).all()
+        counts_min = group_len.min()
+        levels_groups = grouper.apply(lambda g: list(g.index)) if return_full else None
+        self.valid_assessed = True
+        self.valid = valid
+        self.counts_min = counts_min
+        return valid, counts_min, levels_groups
+
+    def sample_conditions(self, columns, levels, counts_thr, max_sample=False, replace=False, random_state=None):
+        if not self.valid_assessed:
+            self.assess_conditions(columns, levels, counts_thr, return_full=False)
+        if self.valid:
+            n_samples = self.counts_min if max_sample else counts_thr
+            return self.df.groupby(columns).sample(n_samples, random_state=random_state, replace=replace)
+        else:
+            return pd.Data.DataFrame([], columns=self.df.columns)
+
+
+class BehavioralUnitFiringRate(Analysis):
+
+    def __init__(self, db: DataBase, version: dict, unit_id: Union[int, tuple]=None) -> None:
+
+        super(BehavioralUnitFiringRate, self).__init__(db)
         # reqs: units
-        self.db = db
         self.version = version
         self.data = None
         self.ind = None
@@ -83,13 +142,13 @@ class BehavioralUnitFR(Analysis):
                                          'behunit_FR_{0:s}_chan{1:03d}_unit{2:03d}.pkl'.format(*ind))
 
 
-class PopulationBehavioralTimeseries():
+class PopulationBehavioralTimeseries:
 
     base_columns = ['Unit', 'Event', 'Condition', 'Instance', 'Timeseries']
 
-    def __init__(self, condition_labels=[], timebin_interval=TimebinInterval(0, 0, 0, 0)):
+    def __init__(self, condition_labels=None, timebin_interval=TimebinInterval(0, 0, 0, 0)):
         self.df = pd.DataFrame(columns=self.base_columns)
-        self.condition_labels = condition_labels
+        self.condition_labels = [] if not bool(condition_labels) else condition_labels
         self.timebin_interval = timebin_interval
 
     def init_with_df(self, df):
@@ -275,36 +334,10 @@ class FactorBehavioralTimeseries(PopulationBehavioralTimeseries):
     def to_dPCA_mean_array(self): pass
     def to_dPCA_trial_array(self): pass
 
-    def fbt_df_from_PCA(X_factor, records, decomp_obj, timebin_interval):
-        records_df = pd.DataFrame(records)
-        num_factors = decomp_obj.n_components_
-        num_conditions = records_df['Condition'].nunique()
-        num_instances = records_df['Instance'].nunique()
-        num_timebins = timebin_interval.num_of_bins()
-        X_factor_base = X_factor.transpose().reshape(num_factors, num_conditions, num_instances, num_timebins)
-        records_base = list(
-            product(list(range(num_factors)), list(records_df['Condition'].unique()), list(range(num_instances))))
-        records_base_df = pd.DataFrame(records_base, columns=['Factor', 'Condition', 'Instance'])
-        records_base_df['Timeseries'] = list(X_factor_base.reshape(len(records_base_df), num_timebins))
-        return records_base_df
-
-    def fbt_df_from_dPCA(X_factor, records, decomp_obj, timebin_interval):
-        records_df = pd.DataFrame(records)
-        num_factors = decomp_obj.n_components
-        num_conditions = records_df['Condition'].nunique()
-        num_instances = records_df['Instance'].nunique()
-        num_timebins = timebin_interval.num_of_bins()
-        X_factor_base = X_factor.reshape(num_factors, num_conditions, num_instances, num_timebins)
-        records_base = list(
-            product(list(range(num_factors)), list(records_df['Condition'].unique()), list(range(num_instances))))
-        records_base_df = pd.DataFrame(records_base, columns=['Factor', 'Condition', 'Instance'])
-        records_base_df['Timeseries'] = list(X_factor_base.reshape(len(records_base_df), num_timebins))
-        return records_base_df
-
 
 class DemixedPrincipalComponent(Analysis):
 
-    def __init__(self, db: DataBase, version: dict) -> DemixedPrincipalComponent:
+    def __init__(self, db: DataBase, version: dict) -> None:
         # reqs: trials, units, events, conditions
         self.db = db
         self.version = version
@@ -314,16 +347,14 @@ class DemixedPrincipalComponent(Analysis):
 
     def assess_unit_events(self, unit_id: Union[int, tuple]) -> list:
 
-        bufr = BehavioralUnitFR(self.db, {'fr': self.version['fr']}, unit_id)
+        bufr = BehavioralUnitFiringRate(self.db, {'fr': self.version['fr']}, unit_id)
 
         # functions for evaluating number of events for each condition for unit thresholded by mean firing rate
-        group_inds = lambda group: group.index
-        valid_timeseries_fr = lambda timeseries: np.mean(timeseries) < float(self.version['fr_thr'])
-        valid_events = lambda inds: [ind for ind in inds
-                                     if valid_timeseries_fr(bufr.data[ind]) and
-                                        self.db.tables['trials'].loc[ind[0:2]].StopCondition == 1]
+        def group_inds(group): return group.index
+        def valid_timeseries_fr(timeseries): return np.mean(timeseries) < float(self.version['fr_thr'])
+        def valid_events(inds): return [ind for ind in inds if valid_timeseries_fr(bufr.data[ind]) and self.db.tables['trials'].loc[ind[0:2]].StopCondition == 1]
 
-        #params
+        # params
         v_factor_params = factor_generate_conditions(self.version['factor'])
         condition_columns = v_factor_params['condition_columns']
         condition_list = v_factor_params['condition_list']
@@ -340,48 +371,6 @@ class DemixedPrincipalComponent(Analysis):
                 break
         return events_inds
 
-    def pbt_from_behavioral_units(self, behavioral_units: pd.core.frame.DataFrame) -> PopulationBehavioralTimeseries:
-
-        # params
-        v_factor_params = factor_generate_conditions(self.version['factor'])
-        condition_columns = v_factor_params['condition_columns']
-        v_fr_params = anova_version_fr_params(self.version['fr'])
-        t_start = v_fr_params['t_start']
-        t_end = v_fr_params['t_end']
-        timebin = v_fr_params['timebin']
-        timestep = v_fr_params['timestep']
-
-        # init
-        timebin_interval = TimebinInterval(timebin, timestep, t_start, t_end)
-
-        data_list = []
-        # find units of behavioral units
-        bu_grouper = behavioral_units.groupby(self.db.md.preproc_imports['units']['index'])
-        # for every unit
-        for unit_ind, unit_group in bu_grouper:
-
-            # load firing rate data
-            bufr = BehavioralUnitFR(self.db, {'fr': self.version['fr']}, unit_ind)
-
-            # group by condition
-            bu_cond_grouper = unit_group.groupby(condition_columns)
-            # for every condition
-            for condition, cond_group in bu_cond_grouper:
-                # for every event
-                for ii, (_, event_entry) in enumerate(cond_group.iterrows()):
-                    event_ind = tuple(event_entry[self.db.md.preproc_imports['events']['index']])
-                    condition = tuple(event_entry[condition_columns])
-                    timeseries = bufr.data[event_ind]
-                    data_entry = [unit_ind, event_ind, condition, ii, timeseries]
-                    # append to data_list
-                    data_list.append(data_entry)
-
-        # create pbt
-        self.pbt = PopulationBehavioralTimeseries(condition_columns, timebin_interval)
-        self.pbt.add_data_rows_from_list(data_list)
-
-        return self.pbt
-
     def exec(self) -> tuple:
 
         if not bool(self.pbt):
@@ -395,7 +384,7 @@ class DemixedPrincipalComponent(Analysis):
         self.dpca_obj.n_trials = 5
         self.dpca_obj.protect = ['t']
         X_fit = self.dpca_obj.fit_transform(X, X_trial)
-        self.dpca_obj.join = self.dpca_obj._join # TODO: figure out why this throws bug if not added here
+        self.dpca_obj.join = self.dpca_obj._join  # TODO: figure out why this throws bug if not added here
 
         return self.dpca_obj, X_fit, X, X_trial, records, records_trial
 
@@ -446,10 +435,58 @@ class DemixedPrincipalComponent(Analysis):
                                          '{0:s}.pkl'.format(filename))
 
 
+class ClassificationAnalysis(Analysis):
+
+    def __init__(self, db: DataBase, version: dict) -> None:
+        # reqs: trials, units, events, conditions
+        self.db = db
+        self.version = version
+
+    def assess_unit_events(self, unit_id: Union[int, tuple]) -> list:
+
+        bufr = BehavioralUnitFiringRate(self.db, {'fr': self.version['fr']}, unit_id)
+
+        # params
+        v_class_params = classification_version_class(self.version['class'])
+        v_balance_params = classification_version_balance(self.version['balance'])
+        condition_columns = v_class_params['condition_columns'] + v_balance_params['condition_columns']
+        condition_list = list(product(*v_class_params['condition_list'], *v_balance_params['condition_list']))
+
+        # filter only events of correct trials, observed by unit and belonging on condition_list
+        events_conditions_db = self.db.tables['events_conditions']
+        events_conditions_unit = events_conditions_db.loc[bufr.data.keys()]
+        events_conditions = events_conditions_unit.loc[events_conditions_unit['StopCondition'].eq(1) & \
+                                                       [el in condition_list for el in combine_columns(events_conditions_unit, condition_columns)]]
+        ect_operator = TableOperator(events_conditions)
+        # assess events, conditions, trials for counterbalanced number of condition list occuring in condition columns
+        ect_assessment = ect_operator.assess_conditions(condition_columns, condition_list, int(self.version['counts_thr']), return_full=True)
+        # if valid unit
+        if ect_assessment[0]:
+            # flatten df with list of events into a single list
+            return list(chain(*list(ect_assessment[2])))
+        else:
+            return []
+
+    # IO
+    def get_wrangle_filename(self) -> str:
+        version_fr = self.version['fr']
+        version_factor = self.version['class']
+        version_balance = self.version['balance']
+        counts_thr = int(self.version['counts_thr'])
+        v_fr_params = anova_version_fr_params(version_fr)
+        return MetaData().proc_dest_path(path.join('BehavioralUnits', 'Classification', version_factor, version_balance,
+                                                   behunit_params_str(version_fr,
+                                                                      v_fr_params['timebin'], v_fr_params['timestep'],
+                                                                      v_fr_params['t_start'], v_fr_params['t_end']),
+                                                   '{0:03d}'.format(counts_thr), 'wrangle'),
+                                         'valid_units.pkl')
+
+
 # ### Misc ### #
 
 def list_param_to_list(list_param):
     return sorted(list_param.split('_'))
+
 
 def list_param_to_str(list_param):
     return ''.join(list_param_to_list(list_param))

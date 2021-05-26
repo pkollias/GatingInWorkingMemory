@@ -29,13 +29,6 @@ def shuffle_to_name(shuffle_i):
         return 'shuffle_{0:04d}'.format(shuffle_i - 1)
 
 
-def filter_df_wrapper(df, column, wrapper, arg):
-
-    mask = wrapper(df[column], arg)
-    return {'mask': mask,
-            'df': df.loc[mask]}
-
-
 #######
 # Factor
 
