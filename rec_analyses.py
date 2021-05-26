@@ -494,8 +494,7 @@ class ClassificationAnalysis(Analysis):
                                                                       v_fr_params['timebin'], v_fr_params['timestep'],
                                                                       v_fr_params['t_start'], v_fr_params['t_end']),
                                                    '{0:03d}'.format(counts_thr), 'filter',
-                                                   '_'.join([area_list_str, subject_str]),
-                                                   self.version['area']),
+                                                   '_'.join([area_list_str, subject_str])),
                                          'filter.pkl')
 
 
