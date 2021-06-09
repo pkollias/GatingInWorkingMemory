@@ -1,5 +1,5 @@
 import sys
-from rec_analyses import *
+from rec_utils import *
 from rec import SignalSmoothing
 
 
@@ -15,15 +15,16 @@ def main():
 
     # create analysis object
     dpca = DemixedPrincipalComponent(DataBase([]), version)
+    db, md = dpca.db, dpca.db.md
 
     # overwrite check
-    target_filename = [dpca.get_exec_filename(fn) for fn in ['fbt', 'dpca_obj', 'X_fit', 'X_tuple']]
+    target_filename = [dpca.get_path_base(fn, dpca.get_exec_stem()) for fn in ['fbt', 'dpca_obj', 'X_fit', 'X_tuple']]
     print(target_filename)
-    if all([path.exists(fn) for fn in target_filename]) and ('overwrite' not in version.keys() or not version['overwrite']):
+    if all([path.exists(fn) for fn in target_filename]) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
         exit()
 
     # load behavioral units from assemble
-    pbt_full = dpca.db.md.np_loader(dpca.get_exec_filename('pbt'))
+    pbt_full = md.np_loader(dpca.get_path_base('pbt', dpca.get_exec_stem()))
 
     # process
     # smoothen and crop data
@@ -42,7 +43,7 @@ def main():
            in X_fit.items()}
 
     for fn, var in zip(target_filename, [fbt, dpca_obj, X_fit, (X, X_trial, records, records_trial)]):
-        dpca.db.md.np_saver(var, fn)
+        md.np_saver(var, fn)
 
 
 main()

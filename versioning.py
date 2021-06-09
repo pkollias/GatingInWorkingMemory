@@ -28,6 +28,15 @@ def parse_vars(items):
     return d
 
 
+def job_scheduler(args_version, args_from_parse_func):
+
+    parse_version = parse_vars(args_version)
+    if 'job_id' in parse_version.keys():
+        return parse_vars(args_from_parse_func(parse_version))
+    else:
+        return parse_version
+
+
 # Versioning
 def anova_version_fr_params(version_fr):
 
@@ -53,6 +62,12 @@ def anova_version_fr_params(version_fr):
         t_start = -50
         t_end = 2000
         timebin = 50
+        timestep = 25
+        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
+    elif version_fr == 'ConcatFactorExtended':
+        t_start = -400
+        t_end = 2400
+        timebin = 150
         timestep = 25
         event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
     elif version_fr == 'Sample':
@@ -159,6 +174,26 @@ def anova_version_aov_params(version_aov, version_fr):
         x_a = 'StageStimSpecialized'
         levels_dict = {x_a: ['S11', 'S12', 'S21', 'S22']}
         event_cnj_mask = [{'column': 'StageStimSpecialized',
+                           'wrapper': pd.Series.ne,
+                           'arg': 'S00'}]
+        group_column_list = ['RuleGroup']
+        x_factors = [x_a]
+    elif version_aov == 'PresentedStimulusExtended':
+        selection_dict = {'column': 'GatingCondSpecialized',
+                          'list': ['PreDist', 'Gating', 'PostDist']}
+        x_a = 'StageStimExtendedNoTarget'
+        levels_dict = {x_a: ['S11', 'S12', 'S21', 'S22']}
+        event_cnj_mask = [{'column': 'StageStimExtendedNoTarget',
+                           'wrapper': pd.Series.ne,
+                           'arg': 'S00'}]
+        group_column_list = ['RuleGroup']
+        x_factors = [x_a]
+    elif version_aov == 'NextStimulusExtended':
+        selection_dict = {'column': 'GatingCondSpecialized',
+                          'list': ['PreDist', 'Gating', 'PostDist']}
+        x_a = 'NextStageStimExtendedNoTarget'
+        levels_dict = {x_a: ['S11', 'S12', 'S21', 'S22']}
+        event_cnj_mask = [{'column': 'NextStageStimExtendedNoTarget',
                            'wrapper': pd.Series.ne,
                            'arg': 'S00'}]
         group_column_list = ['RuleGroup']

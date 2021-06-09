@@ -66,6 +66,15 @@ def main():
                                        in zip(list(conditions.StageStimCategory),
                                               list(conditions.StageStimDelayCategory),
                                               list(conditions.StageCategory))]
+    nextgatingcondextended = list(conditions['GatingCondExtended'])[2:] + [np.nan, np.nan]
+    conditions['StageStimExtendedNoTarget'] = [sse if not ngc in ['Target', np.nan, 'Cue'] else np.nan
+                                               for (sse, ngc)
+                                               in zip(conditions['StageStimExtended'], nextgatingcondextended)]
+    nextstagestimextended = list(conditions['StageStimExtended'])[2:] + [np.nan, np.nan]
+    conditions['NextStageStimExtendedNoTarget'] = [nsse if not ngc in ['Target', np.nan, 'Cue'] else np.nan
+                                                   for (nsse, ngc)
+                                                   in zip(nextstagestimextended, nextgatingcondextended)]
+
 
     prev_stime = [np.nan, np.nan] + list(conditions['StageStimExtended'])[:-2]
     prev_stims = [np.nan, np.nan] + list(conditions['StageStimSpecialized'])[:-2]
@@ -137,7 +146,8 @@ def main():
     # typecasting
     columns = ['Catch', 'GatingCondExtended', 'GatingCondSpecialized', 'GatingBoolSpecialized',
                'GatingCond_From_To_GatingCondExtended', 'GatingCond_From_To_GatingCondSpecialized',
-               'StageStimExtended', 'StageStimSpecialized', 'PrevStageStimExtended', 'PrevStageStimSpecialized',
+               'StageStimExtended', 'StageStimSpecialized', 'StageStimExtendedNoTarget', 'NextStageStimExtendedNoTarget',
+               'PrevStageStimExtended', 'PrevStageStimSpecialized',
                'PostDistCategory', 'RuleCueCategory', 'RuleStimCategory', 'RuleGroup', 'PrevDistractorSpecialized',
                'DistractorSerialPosition', 'GatedStimulusSerialPosition',
                'DistractorSerialPositionCentered', 'GatedStimulusSerialPositionCentered',
@@ -147,6 +157,7 @@ def main():
     types = ['category', 'category', 'category', 'category',
              'category', 'category',
              'category', 'category', 'category', 'category',
+             'category', 'category',
              'category', 'category', 'category', 'category', 'category',
              'category', 'category',
              'category', 'category',

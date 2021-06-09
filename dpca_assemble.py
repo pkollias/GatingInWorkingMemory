@@ -14,19 +14,20 @@ def main():
 
     # create analysis object
     dpca = DemixedPrincipalComponent(DataBase(['units', 'events', 'conditions']), version)
+    db, md = dpca.db, dpca.db.md
 
     # overwrite check
-    target_filename = dpca.get_exec_filename('pbt')
+    target_filename = dpca.get_path_base('pbt', dpca.get_exec_stem())
     print(target_filename)
-    if path.exists(target_filename) and ('overwrite' not in version.keys() or not version['overwrite']):
+    if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
         exit()
 
     # load behavioral units from filter
-    behavioral_units_filter = dpca.db.md.np_loader(dpca.get_filter_filename())
+    behavioral_units_filter = md.np_loader(dpca.get_path_base('filter', dpca.get_filter_stem()))
 
     # init params
-    units_index = dpca.db.md.preproc_imports['units']['index']
-    events_index = dpca.db.md.preproc_imports['events']['index']
+    units_index = md.preproc_imports['units']['index']
+    events_index = md.preproc_imports['events']['index']
     mode_seed = int(dpca.version['mode_seed'])
     area = dpca.version['area']
     v_factor_params = factor_generate_conditions(dpca.version['factor'])
@@ -35,11 +36,10 @@ def main():
 
     # process
     # get behavioral unit indices
-    buf_grouper = behavioral_units_filter.groupby(units_index)
-    buf_units = [group_ind for group_ind, _ in buf_grouper]
+    buf_units = list(set(zip_columns(behavioral_units_filter, units_index)))
     # filter units table with behavioral units
-    dpca.db.tables['units'] = dpca.db.tables['units'].loc[buf_units]
-    units = dpca.db.tables['units']
+    db.tables['units'] = db.tables['units'].loc[buf_units]
+    units = db.tables['units']
 
     if dpca.version['mode'] == 'AreaShuffle':
         # shuffle area labels and take shuffled area units indices
@@ -53,19 +53,26 @@ def main():
     elif dpca.version['mode'] == 'Full':
         area_units = units.loc[units['Area'].eq(area)].index
 
+    # TODO: modifications for replacement sampling of units, correct later
+    area_units_df = pd.DataFrame(area_units, columns=['Unit'])
+    area_units_df = unzip_columns(area_units_df, 'Unit', units_index)
+    area_units_df['Unit_Code'] = area_units_df.index
+
     # isolate behavioral units of area selection
-    area_behavioral_units = behavioral_units_filter.set_index(units_index).loc[area_units].reset_index()
+    area_behavioral_units = pd.merge(behavioral_units_filter, area_units_df, on=units_index)
     # merge with condition columns
-    events_conditions = dpca.db.tables['events_conditions'][condition_columns].reset_index()
+    events_conditions = db.tables['events_conditions'][condition_columns].reset_index()
     area_behavioral_units_conditions = pd.merge(area_behavioral_units, events_conditions, on=events_index)
     # groupby units x conditions
-    area_conditions_grouper = area_behavioral_units_conditions.groupby(units_index + condition_columns)
+    area_conditions_grouper = area_behavioral_units_conditions.groupby(units_index + ['Unit_Code'] + condition_columns)
     # sample counts_thr events for every unit x condition (replace for Bootstrap)
-    behavioral_units = area_conditions_grouper.sample(counts_thr, random_state=mode_seed, replace=dpca.version['mode'] == 'Bootstrap')
+    behavioral_units = area_conditions_grouper.sample(counts_thr,
+                                                      random_state=mode_seed,
+                                                      replace=dpca.version['mode'] == 'Bootstrap')
 
-    pbt = pbt_from_behavioral_units(condition_columns, version['fr'], behavioral_units, dpca.db)
+    pbt = pbt_from_behavioral_units(condition_columns, version['fr'], behavioral_units, db)
 
-    dpca.db.md.np_saver(pbt, target_filename)
+    md.np_saver(pbt, target_filename)
 
 
 main()

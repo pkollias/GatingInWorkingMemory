@@ -13,18 +13,19 @@ def main():
 
     # create analysis object
     dpca = DemixedPrincipalComponent(DataBase(['trials', 'units', 'events', 'conditions']), version)
+    db, md = dpca.db, dpca.db.md
 
     # overwrite check
-    target_filename = dpca.get_wrangle_filename()
+    target_filename = dpca.get_path_base('valid_units', dpca.get_wrangle_stem())
     print(target_filename)
-    if path.exists(target_filename) and ('overwrite' not in version.keys() or not version['overwrite']):
+    if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
         exit()
 
     # mark units as valid based on number of events and
-    units = dpca.db.tables['units']
+    units = db.tables['units']
     valid_units_events = units.apply(lambda row: dpca.assess_unit_events(row.name), axis=1)
 
-    dpca.db.md.np_saver(valid_units_events, target_filename)
+    md.np_saver(valid_units_events, target_filename)
 
 
 main()

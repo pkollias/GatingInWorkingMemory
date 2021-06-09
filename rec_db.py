@@ -1,5 +1,6 @@
 from __future__ import annotations
 from metadata import *
+from rec_format import hash_to_seed
 
 
 class DataBase:
@@ -64,12 +65,15 @@ class DataBase:
                (activity['SegmentStart'].le(end) & activity['SegmentEnd'].gt(end)).any()
 
 
-
 # ### Misc ### #
 
 
-def combine_columns(table, columns):
-    return list(zip(*[table[col] for col in columns]))
+def zip_columns(table, old_column_names, new_column=None):
+    return pd.Series(list(zip(*[table[col] for col in old_column_names])), index=table.index, name=new_column)
+
+
+def unzip_columns(table, old_column, new_column_names):
+    return pd.DataFrame(list(map(list, table[old_column])), index=table.index, columns=new_column_names)
 
 
 def timestamp_interval_within_activity(interval_start, interval_end, activity_collection):
@@ -79,3 +83,37 @@ def timestamp_interval_within_activity(interval_start, interval_end, activity_co
            and \
            (activity_collection['SegmentStart'].le(interval_end) &
             activity_collection['SegmentEnd'].gt(interval_end)).any()
+
+
+def generate_pseudotrial_from_behavioral_units(behavioral_units, assembly_condition_columns, class_condition_columns, seed):
+
+    '''groups behavioral units by pseudounit (unit_index + unit_code)
+    within each pseudounit groupping groups by assembly_condition and shuffles order
+    returns shuffled pseudounit, assembly_condition shuffles
+    and information in preserved order of unit_inds, unit_codes, class_codes, classes'''
+
+    md = MetaData()
+    units_index = md.preproc_imports['units']['index']
+    events_index = md.preproc_imports['events']['index']
+
+    # util functions for shuffled pseudotrial generation
+    def zip_events(df): return zip_columns(df, events_index + ['Instance'], 'PseudoEvent')
+    # ensure that each group has its own seed
+    def shuffle_group_rows(group): return group.groupby(assembly_condition_columns).sample(frac=1, random_state=hash_to_seed((seed, group.name)))
+    def apply_func(group): return list(zip_events(shuffle_group_rows(group)))
+
+    # get transpose of pseudotrial event indices by shuffling events within condition and then stacking together
+    unit_grouper = behavioral_units.groupby(units_index + ['Unit_Code'])
+    pseudo_trials_t = list(unit_grouper.apply(apply_func))
+    # transpose generated pseudotrial list
+    pseudo_trials = list(map(list, zip(*pseudo_trials_t)))
+
+    unit_code_inds = list(unit_grouper.groups.keys())
+    unit_inds, unit_codes = list(map(list, list(zip(*[(ind[:len(units_index)], ind[-1])for ind in unit_code_inds]))))
+    classes_unique = list(behavioral_units.groupby(class_condition_columns).groups.keys())
+    classes_zips = ([(code_i, class_i)
+                for code_i, class_i in enumerate(classes_unique)
+                for _ in range(int(len(pseudo_trials) / len(classes_unique)))])
+    class_codes, classes = list(map(list, zip(*classes_zips)))
+
+    return pseudo_trials, unit_inds, unit_codes, class_codes, classes

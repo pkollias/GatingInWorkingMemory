@@ -3,28 +3,30 @@ from rec_analyses import *
 
 
 def main():
+
+    args_version = sys.argv[1:]
+
     """ class=, balance, fr=, counts_thr=, area_list=, subject=, [overwrite=] """
     # args_version = ['class=GatingPreBool', 'balance=Stimulus', 'fr=ConcatFactor2', 'counts_thr=15',
     # 'area_list=PFC_Stri', 'subject=Gonzo_Oscar']
 
     # load analysis parameters
-    args = sys.argv
-    args_version = args[1:]
-    version = parse_vars(args_version)
+    version = job_scheduler(args_version, args_from_parse_func)
 
     # create analysis object
     classifier = ClassificationAnalysis(DataBase(['sessions', 'units', 'events', 'conditions']), version)
+    db, md = classifier.db, classifier.db.md
 
     # overwrite check
-    target_filename = classifier.get_filter_filename()
+    target_filename = classifier.get_path_base('filter', classifier.get_filter_stem())
     print(target_filename)
-    if path.exists(target_filename) and ('overwrite' not in version.keys() or not version['overwrite']):
+    if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
         exit()
 
     # create unit selection filters
-    units = classifier.db.tables['units']
+    units = db.tables['units']
     # valid units
-    valid_units_events = classifier.db.md.np_loader(classifier.get_wrangle_filename())
+    valid_units_events = md.np_loader(classifier.get_path_base('valid_units', classifier.get_wrangle_stem()))
     valid_units = valid_units_events.apply(bool)
     # single units
     single_units = units['UnitNum'].ne(0) & units['RatingCode'].ne(7)
@@ -32,20 +34,37 @@ def main():
     area_list = classifier.version['area_list'].split('_')
     area_list_units = units['Area'].isin(area_list)
     # subject units
-    sessions = classifier.db.tables['sessions']
+    sessions = db.tables['sessions']
     subject_sessions = sessions.loc[sessions['Subject'].isin(classifier.version['subject'].split('_'))].index
     subject_units = units['Session'].isin(subject_sessions)
     # apply filters
-    classifier.db.tables['units'] = units.loc[valid_units & single_units & area_list_units & subject_units]
+    db.tables['units'] = units.loc[valid_units & single_units & area_list_units & subject_units]
 
     # create behavioral_units table
-    units_events = valid_units_events.loc[classifier.db.tables['units'].index]
+    units_events = valid_units_events.loc[db.tables['units'].index]
     behavioral_units = pd.DataFrame([(sess, channum, unitnum, trialnum, stageindex)
                                      for (sess, channum, unitnum), events_list in units_events.iteritems()
                                      for _, trialnum, stageindex in events_list],
-                                    columns=classifier.db.md.proc_imports['behavioral_units']['index'])
+                                    columns=md.proc_imports['behavioral_units']['index'])
 
-    classifier.db.md.np_saver(behavioral_units, target_filename)
+    md.np_saver(behavioral_units, target_filename)
+
+
+def args_from_parse_func(parse_version):
+
+    args_class = ['class=GatingPreBool']
+    args_balance = ['balance=Stimulus']
+    args_fr = ['fr=ConcatFactor2']
+    args_counts_thr = ['counts_thr=15']
+    args_area_list = ['area_list=PFC_Stri', 'area_list=PFC_Stri_IT']
+    args_subject = ['subject=Gonzo_Oscar', 'subject=Gonzo', 'subject=Oscar']
+    args_version_list = list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr, args_area_list,
+                                                     args_subject))))
+    args_version_from_job = args_version_list[int(parse_version['job_id'])]
+    if 'overwrite' in parse_version.keys():
+        args_version_from_job.append('overwrite={0:s}'.format(parse_version['overwrite']))
+
+    return args_version_from_job
 
 
 main()

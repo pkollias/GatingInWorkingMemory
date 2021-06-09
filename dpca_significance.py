@@ -14,22 +14,23 @@ def main():
 
     # create analysis object
     dpca = DemixedPrincipalComponent(DataBase([]), version)
+    db, md = dpca.db, dpca.db.md
 
     # overwrite check
-    target_filename = dpca.get_exec_filename('significance')
+    target_filename = dpca.get_path_base('significance', dpca.get_exec_stem())
     print(target_filename)
-    if path.exists(target_filename) and ('overwrite' not in version.keys() or not version['overwrite']):
+    if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
         exit()
 
-    src_filename = [dpca.get_exec_filename(fn) for fn in ['dpca_obj', 'X_tuple']]
+    src_filename = [dpca.get_path_base(fn, dpca.get_exec_stem()) for fn in ['dpca_obj', 'X_tuple']]
     dpca_obj, (X, X_trial, _, _) = tuple(
-        [dpca.db.md.np_loader(fn) for fn in src_filename])
+        [md.np_loader(fn) for fn in src_filename])
 
     # process
     # run cross-validated mean classification score significance analyses
     significance = dpca_obj.significance_analysis(X, X_trial, n_shuffles=100, n_splits=20, axis=True)
 
-    dpca.db.md.np_saver(significance, target_filename)
+    md.np_saver(significance, target_filename)
 
 
 main()

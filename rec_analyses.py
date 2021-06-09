@@ -8,6 +8,7 @@ from dPCA import dPCA
 from copy import copy
 from itertools import chain
 from sklearn.preprocessing import StandardScaler
+from sklearn.model_selection import train_test_split
 
 
 class Analysis:
@@ -36,16 +37,16 @@ class PermutationStatistic:
             key = len(self.shuffles)
         self.shuffles[key] = {'score': self.score_round(score), 'entry': entry, 'seed': seed}
 
-    def get_score_distribution(self):
+    def get_score_distribution(self) -> list:
         return [shuffle['score'] for shuffle in self.shuffles.values()]
 
-    def distribution_p_threshold(self, percentile):
+    def distribution_p_threshold(self, percentile: float) -> float:
         return np.percentile(self.get_score_distribution(), percentile, interpolation='linear')
 
-    def significant(self, percentile):
+    def significant(self, percentile: float) -> bool:
         return self.observed['score'] > self.distribution_p_threshold(percentile)
 
-    def zscore(self, key=None):
+    def zscore(self, key=None) -> float:
         shuffle_scores = self.get_score_distribution()
         val = self.observed['score'] if not bool(key) else self.shuffles[key['score']]
         return (val - np.mean(shuffle_scores) / np.std(shuffle_scores)) if np.std(shuffle_scores) > 0 else 0
@@ -60,7 +61,7 @@ class ObjectTimeseries:
     def set_series(self, series):
         self.series = series
 
-    def crop_timeseries(self, t_start, t_end):
+    def crop_timeseries(self, t_start: int, t_end: int):
         ''' t_start represents onset of first window and t_end represents offset of last window '''
         crop_start_ind = self.timebin_interval.split_to_bins_offset().index(t_start)
         crop_end_ind = self.timebin_interval.split_to_bins_offset().index(t_end)
@@ -77,6 +78,9 @@ class ObjectTimeseries:
         elif pos == 0:
             self.series.insert(0, entry)
             self.timebin_interval.t_start -= self.timebin_interval.timestep
+
+    def get_object_at_time(self, t):
+        return self.series[self.timebin_interval.t_offset_to_ind(t)]
 
 
 class TableOperator:
@@ -146,8 +150,11 @@ class PopulationBehavioralTimeseries:
 
     base_columns = ['Unit', 'Event', 'Condition', 'Instance', 'Timeseries']
 
-    def __init__(self, condition_labels=None, timebin_interval=TimebinInterval(0, 0, 0, 0)):
-        self.df = pd.DataFrame(columns=self.base_columns)
+    def __init__(self, condition_labels=None, timebin_interval=TimebinInterval(0, 0, 0, 0), df=None):
+        if df is not None:
+            self.df = df
+        else:
+            self.df = pd.DataFrame(columns=self.base_columns)
         self.condition_labels = [] if not bool(condition_labels) else condition_labels
         self.timebin_interval = timebin_interval
 
@@ -224,6 +231,13 @@ class PopulationBehavioralTimeseries:
     def unfold_conditions_df(self):
         return pd.DataFrame(self.df['Condition'].tolist(), index=self.df.index, columns=self.condition_labels)
 
+    def to_behavioral_units(self):
+        md = MetaData()
+        unzipped_df = pd.concat([unzip_columns(self.df, 'Unit', md.preproc_imports['units']['index']),
+                                 unzip_columns(self.df, 'Event', md.preproc_imports['events']['index']),
+                                 unzip_columns(self.df, 'Condition', self.condition_labels)], axis=1)
+        return unzipped_df.loc[:, ~unzipped_df.columns.duplicated()]
+
     def to_PCA_array(self):
         df_base = self.df
         grouper = df_base.groupby(['Unit', 'Condition', 'Instance'])
@@ -294,6 +308,49 @@ class PopulationBehavioralTimeseries:
         # unit, condition, instance information for reconstruction
         records = df_base.iloc[index_list][['Unit', 'Condition', 'Instance']].to_records()
         return X, records
+
+    def to_pseudosession_firing_rate(self, pseudosession_inds_array, t_ind):
+
+        df_ordered_timeseries = self.df.loc[pseudosession_inds_array.flat]['Timeseries']
+        df_t_fr = df_ordered_timeseries.apply(lambda timeseries: timeseries[t_ind])
+        X = df_t_fr.to_numpy().reshape(pseudosession_inds_array.shape)
+        return X
+
+
+class PseudoPopulationBehavioralTimeseries(PopulationBehavioralTimeseries):
+
+    base_columns = ['Unit', 'Unit_Code', 'Event', 'Condition', 'Instance', 'Timeseries']
+
+    def __init__(self, condition_labels=None, timebin_interval=TimebinInterval(0, 0, 0, 0), df=None):
+        if df is not None:
+            self.df = df
+        else:
+            self.df = pd.DataFrame(columns=self.base_columns)
+        self.condition_labels = [] if not bool(condition_labels) else condition_labels
+        self.timebin_interval = timebin_interval
+
+    def add_data_row(self, unit_ind, unit_code, event_ind, condition, instance, timeseries, index=None):
+        row_data_df = pd.DataFrame.from_dict({index: [unit_ind, unit_code, event_ind, condition, instance, timeseries]},
+                                             columns=self.base_columns,
+                                             orient='index')
+        ignore_index = index is None
+        self.df.append(row_data_df, ignore_index=ignore_index)
+
+    def to_behavioral_units(self):
+        md = MetaData()
+        unzipped_df = pd.concat([unzip_columns(self.df, 'Unit', md.preproc_imports['units']['index']),
+                                 self.df['Unit_Code'],
+                                 unzip_columns(self.df, 'Event', md.preproc_imports['events']['index']),
+                                 self.df['Instance'],
+                                 unzip_columns(self.df, 'Condition', self.condition_labels)], axis=1)
+        return unzipped_df.loc[:, ~unzipped_df.columns.duplicated()]
+
+    def to_PCA_array(self): pass
+    def to_PCA_scale_array(self): pass
+    def to_dPCA_mean_array(self): pass
+    def to_dPCA_mean_demean_array(self): pass
+    def to_dPCA_trial_array(self): pass
+
 
 
 class FactorBehavioralTimeseries(PopulationBehavioralTimeseries):
@@ -389,7 +446,7 @@ class DemixedPrincipalComponent(Analysis):
         return self.dpca_obj, X_fit, X, X_trial, records, records_trial
 
     # IO
-    def get_wrangle_filename(self) -> str:
+    def get_path_base(self, filename, stem='') -> str:
         version_fr = self.version['fr']
         version_factor = self.version['factor']
         counts_thr = int(self.version['counts_thr'])
@@ -398,41 +455,23 @@ class DemixedPrincipalComponent(Analysis):
                                                    behunit_params_str(version_fr,
                                                                       v_fr_params['timebin'], v_fr_params['timestep'],
                                                                       v_fr_params['t_start'], v_fr_params['t_end']),
-                                                   '{0:03d}'.format(counts_thr), 'wrangle'),
-                                         'valid_units.pkl')
-
-    def get_filter_filename(self) -> str:
-        version_fr = self.version['fr']
-        version_factor = self.version['factor']
-        counts_thr = int(self.version['counts_thr'])
-        v_fr_params = anova_version_fr_params(version_fr)
-        area_list_str = list_param_to_str(self.version['area_list'])
-        subject_str = list_param_to_str(self.version['subject'])
-        return MetaData().proc_dest_path(path.join('BehavioralUnits', 'DemixedPCA', version_factor,
-                                                   behunit_params_str(version_fr,
-                                                                      v_fr_params['timebin'], v_fr_params['timestep'],
-                                                                      v_fr_params['t_start'], v_fr_params['t_end']),
-                                                   '{0:03d}'.format(counts_thr), 'filter',
-                                                   '_'.join([area_list_str, subject_str])),
-                                         'filter.pkl')
-
-    def get_exec_filename(self, filename) -> str:
-        # 'pbt', 'fbt', 'dpca_obj', 'X_fit', 'X_tuple', 'significance'
-        version_fr = self.version['fr']
-        version_factor = self.version['factor']
-        counts_thr = int(self.version['counts_thr'])
-        v_fr_params = anova_version_fr_params(version_fr)
-        area_list_str = list_param_to_str(self.version['area_list'])
-        subject_str = list_param_to_str(self.version['subject'])
-        return MetaData().proc_dest_path(path.join('BehavioralUnits', 'DemixedPCA', version_factor,
-                                                   behunit_params_str(version_fr,
-                                                                      v_fr_params['timebin'], v_fr_params['timestep'],
-                                                                      v_fr_params['t_start'], v_fr_params['t_end']),
-                                                   '{0:03d}'.format(counts_thr), 'exec',
-                                                   '_'.join([area_list_str, subject_str]),
-                                                   self.version['area'],
-                                                   '_'.join([self.version['mode'], '{0:03d}'.format(int(self.version['mode_seed']))])),
+                                                   '{0:03d}'.format(counts_thr), *stem),
                                          '{0:s}.pkl'.format(filename))
+
+    def get_wrangle_stem(self) -> Union[str, tuple]:
+        return 'stem'
+
+    def get_filter_stem(self) -> Union[str, tuple]:
+        area_list_str = list_param_to_str(self.version['area_list'])
+        subject_str = list_param_to_str(self.version['subject'])
+        return 'filter', '_'.join([area_list_str, subject_str])
+
+    def get_exec_stem(self) -> Union[str, tuple]:
+        # 'pbt', 'fbt', 'dpca_obj', 'X_fit', 'X_tuple', 'significance'
+        area_list_str = list_param_to_str(self.version['area_list'])
+        subject_str = list_param_to_str(self.version['subject'])
+        return ('exec', '_'.join([area_list_str, subject_str]), self.version['area'],
+                '_'.join([self.version['mode'], '{0:03d}'.format(int(self.version['mode_seed']))]))
 
 
 class ClassificationAnalysis(Analysis):
@@ -442,21 +481,39 @@ class ClassificationAnalysis(Analysis):
         self.db = db
         self.version = version
 
+    def get_assembly_condition_columns(self) -> list:
+
+        v_class_params = classification_version_class(self.version['class'])
+        v_balance_params = classification_version_balance(self.version['balance'])
+        return v_class_params['condition_columns'] + v_balance_params['condition_columns']
+
+    def get_assembly_condition_list(self) -> list:
+
+        v_class_params = classification_version_class(self.version['class'])
+        v_balance_params = classification_version_balance(self.version['balance'])
+        return list(product(*v_class_params['condition_list'], *v_balance_params['condition_list']))
+
+    def get_class_condition_columns(self) -> list:
+
+        return classification_version_class(self.version['class'])['condition_columns']
+
+    def get_class_condition_list(self) -> list:
+
+        return list(product(*classification_version_class(self.version['class'])['condition_list']))
+
     def assess_unit_events(self, unit_id: Union[int, tuple]) -> list:
 
         bufr = BehavioralUnitFiringRate(self.db, {'fr': self.version['fr']}, unit_id)
 
         # params
-        v_class_params = classification_version_class(self.version['class'])
-        v_balance_params = classification_version_balance(self.version['balance'])
-        condition_columns = v_class_params['condition_columns'] + v_balance_params['condition_columns']
-        condition_list = list(product(*v_class_params['condition_list'], *v_balance_params['condition_list']))
+        condition_columns = self.get_assembly_condition_columns()
+        condition_list = self.get_assembly_condition_list()
 
         # filter only events of correct trials, observed by unit and belonging on condition_list
         events_conditions_db = self.db.tables['events_conditions']
         events_conditions_unit = events_conditions_db.loc[bufr.data.keys()]
         events_conditions = events_conditions_unit.loc[events_conditions_unit['StopCondition'].eq(1) & \
-                                                       [el in condition_list for el in combine_columns(events_conditions_unit, condition_columns)]]
+                                                       [el in condition_list for el in zip_columns(events_conditions_unit, condition_columns)]]
         ect_operator = TableOperator(events_conditions)
         # assess events, conditions, trials for counterbalanced number of condition list occuring in condition columns
         ect_assessment = ect_operator.assess_conditions(condition_columns, condition_list, int(self.version['counts_thr']), return_full=True)
@@ -467,42 +524,126 @@ class ClassificationAnalysis(Analysis):
         else:
             return []
 
+    def generate_pseudoarray_inds(self, pbt: PopulationBehavioralTimeseries, seed) -> tuple(np.ndarray, np.ndarray):
+
+        # TODO: revisit - bad coding
+        # important note: the shuffling happens at the level of the subgroups so internal structure and order is
+        # preserved and not shuffled (e.g. order of output will be still S11, Gating -> S12, Gating, ...) so
+        # class order can assumed to not be shuffled (therefore class order is still the same)
+
+        md = MetaData()
+        behavioral_units_index = md.proc_imports['behavioral_units']['index']
+        units_index = md.preproc_imports['units']['index']
+
+        # convert to df with beh_units columns and all other pbt.df columns unzipped
+        # (session, channum, unitnum, trialnum, stageindex, + *condition + [unit_code, instance])
+        behavioral_units = pbt.to_behavioral_units()
+        pseudotrial_result = generate_pseudotrial_from_behavioral_units(behavioral_units,
+                                                                        self.get_assembly_condition_columns(),
+                                                                        self.get_class_condition_columns(),
+                                                                        int(hash_to_seed(hash((seed, '_'.join(self.version.values()))))))
+        pseudotrial, unit_inds, unit_codes, class_codes, classes = pseudotrial_result
+
+        # get C ordered list of behavioral units for X array
+        def tuple_ind_to_behavioral_ind(tuple_ind): return (tuple_ind[0][0], tuple_ind[0][1], tuple_ind[0][2],  # unit_ind
+                                                            tuple_ind[1],  # unit_code
+                                                            tuple_ind[2][1], tuple_ind[2][2], tuple_ind[2][3])  # pseudo_event
+        C_order_bu_inds = [tuple_ind_to_behavioral_ind(ind_tuple) for instance in pseudotrial for ind_tuple in zip(unit_inds, unit_codes, instance)]
+
+        # TODO: create new index for behavioral pseudounits, amended with Unit_Code and Instance, correct later
+        behavioral_pseudo_units_index = behavioral_units_index.copy()
+        behavioral_pseudo_units_index.insert(len(units_index), 'Unit_Code')
+        behavioral_pseudo_units_index.append('Instance')
+        # transfer from C ordered list of behavioral unit indices to pbt int indices
+        behavioral_unit_inds = zip_columns(pbt.to_behavioral_units(), behavioral_pseudo_units_index, 'Behavioral_PseudoUnit')
+        C_order_pbt_iloc_inds = behavioral_unit_inds.reset_index(drop=False).set_index('Behavioral_PseudoUnit').loc[C_order_bu_inds]['index']
+        pseudoarray_flat_inds = pbt.df.loc[C_order_pbt_iloc_inds].index.to_numpy()
+        pseudoarray_inds = pseudoarray_flat_inds.reshape(len(classes), len(unit_inds))
+        class_array = np.array(classes)
+
+        return pseudoarray_inds, class_array
+
+    def get_train_test_splits_list(self, pbt: PopulationBehavioralTimeseries):
+
+        split = self.version['split']
+        num_conditions_to_stratify = len(self.get_assembly_condition_list())
+        instances_per_condition = int(self.version['counts_thr'])
+        n_trials = num_conditions_to_stratify * instances_per_condition
+
+        if split == 'StratifiedStim':
+
+            # under design assumptions, X_inds_array holds latent (assembly) condition information
+            # in order so we can tile stratify parameter
+            condition_stratify = np.tile(np.arange(num_conditions_to_stratify),
+                                         (instances_per_condition, 1)).transpose().reshape(-1)
+            train_test = [train_test_split(np.arange(n_trials), train_size=2 / 3, stratify=condition_stratify, random_state=ii) for ii in
+                          range(20)]
+
+        elif split in ['OneStimTest', 'OneStimTrain', 'WithinGroupTransfer', 'AcrossGroupTransfer']:
+
+            condition = unzip_columns(pbt.df, 'Condition', pbt.condition_labels)
+            generalize_column = 'StageStimSpecialized'
+            split_to_test_stim_levels = dict([('OneStimTest', [['S11'], ['S12'], ['S21'], ['S22']]),
+                                              ('OneStimTrain', [['S11', 'S12', 'S21'], ['S11', 'S12', 'S22'], ['S11', 'S21', 'S22'], ['S12', 'S21', 'S22']]),
+                                              ('WithinGroupTransfer', [['S11', 'S21'], ['S11', 'S22'], ['S12', 'S21'], ['S12', 'S22']]),
+                                              ('AcrossGroupTransfer', [['S11', 'S12'], ['S21', 'S22']])])
+            train_test = []
+            for test_stim_list in split_to_test_stim_levels[split]:
+                pbt_test_index_bool = condition.iloc[:n_trials][generalize_column].isin(test_stim_list)
+                train_inds = np.random.permutation(np.array(pbt_test_index_bool.loc[~pbt_test_index_bool].index))
+                test_inds = np.random.permutation(np.array(pbt_test_index_bool.loc[pbt_test_index_bool].index))
+                train_test.append([train_inds, test_inds])
+
+        return train_test
+
     # IO
-    def get_wrangle_filename(self) -> str:
+    def get_path_base(self, filename, stem='') -> str:
         version_fr = self.version['fr']
         version_class = self.version['class']
         version_balance = self.version['balance']
         counts_thr = int(self.version['counts_thr'])
         v_fr_params = anova_version_fr_params(version_fr)
+        if type(stem) == str:
+            stem_path = stem
+        elif type(stem) == tuple:
+            stem_path = path.join(*stem)
         return MetaData().proc_dest_path(path.join('BehavioralUnits', 'Classification', version_class, version_balance,
                                                    behunit_params_str(version_fr,
                                                                       v_fr_params['timebin'], v_fr_params['timestep'],
                                                                       v_fr_params['t_start'], v_fr_params['t_end']),
-                                                   '{0:03d}'.format(counts_thr), 'wrangle'),
-                                         'valid_units.pkl')
+                                                   '{0:03d}'.format(counts_thr), stem_path),
+                                         '{0:s}.pkl'.format(filename))
 
-    def get_filter_filename(self) -> str:
-        version_fr = self.version['fr']
-        version_class = self.version['class']
-        version_balance = self.version['balance']
-        counts_thr = int(self.version['counts_thr'])
-        v_fr_params = anova_version_fr_params(version_fr)
+
+    def get_wrangle_stem(self) -> Union[str, tuple]:
+        return 'wrangle'
+
+    def get_filter_stem(self) -> Union[str, tuple]:
         area_list_str = list_param_to_str(self.version['area_list'])
         subject_str = list_param_to_str(self.version['subject'])
-        return MetaData().proc_dest_path(path.join('BehavioralUnits', 'Classification', version_class, version_balance,
-                                                   behunit_params_str(version_fr,
-                                                                      v_fr_params['timebin'], v_fr_params['timestep'],
-                                                                      v_fr_params['t_start'], v_fr_params['t_end']),
-                                                   '{0:03d}'.format(counts_thr), 'filter',
-                                                   '_'.join([area_list_str, subject_str])),
-                                         'filter.pkl')
+        return 'filter', '_'.join([area_list_str, subject_str])
+
+    def get_assemble_stem(self) -> Union[str, tuple]:
+        area_list_str = list_param_to_str(self.version['area_list'])
+        subject_str = list_param_to_str(self.version['subject'])
+        return ('exec', '_'.join([area_list_str, subject_str]), self.version['area'],
+                '_'.join([self.version['mode'], '{0:03d}'.format(int(self.version['mode_seed']))]))
+
+    def get_train_stem(self) -> Union[str, tuple]:
+        return (*self.get_assemble_stem(), 'train')
+
+    def get_pseudo_session_stem(self) -> Union[str, tuple]:
+        return (*self.get_train_stem(), 'pseudo_session_{0:03d}'.format(int(self.version['pseudo_seed'])))
+
+    def get_train_test_stem(self) -> Union[str, tuple]:
+        return (*self.get_pseudo_session_stem(), 'train_test')
 
 
 # ### Misc ### #
 
-def list_param_to_list(list_param):
+def list_param_to_list(list_param: str) -> list:
     return sorted(list_param.split('_'))
 
 
-def list_param_to_str(list_param):
+def list_param_to_str(list_param: str) -> str:
     return ''.join(list_param_to_list(list_param))

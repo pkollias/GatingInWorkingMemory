@@ -318,6 +318,11 @@ class TimebinInterval:
     def sub_interval(self, t_start, t_end):
         return TimebinInterval(self.timebin, self.timestep, t_start, t_end)
 
+    def t_offset_to_ind(self, t):
+
+        return self.split_to_bins_offset().index(t)
+
+
 
 # TODO: implement later, bin, stepped timeseries
 class Timeseries:

@@ -8,14 +8,18 @@ def pbt_from_behavioral_units(condition_columns: list, version_fr: str, behavior
     t_end = v_fr_params['t_end']
     timebin = v_fr_params['timebin']
     timestep = v_fr_params['timestep']
+    md = db.md
+    units_index, events_index = md.preproc_imports['units']['index'], md.preproc_imports['events']['index']
     # init
     timebin_interval = TimebinInterval(timebin, timestep, t_start, t_end)
     data_list = []
     # find units of behavioral units
-    bu_grouper = behavioral_units.groupby(db.md.preproc_imports['units']['index'])
+    bu_grouper = behavioral_units.groupby(units_index + ['Unit_Code'])
     # for every unit
-    for unit_ind, unit_group in bu_grouper:
+    for unit_ind_code, unit_group in bu_grouper:
         # load firing rate data
+        unit_ind = unit_ind_code[:len(units_index)]
+        unit_code = unit_ind_code[-1]
         bufr = BehavioralUnitFiringRate(db, {'fr': version_fr}, unit_ind)
         # group by condition
         bu_cond_grouper = unit_group.groupby(condition_columns)
@@ -26,11 +30,11 @@ def pbt_from_behavioral_units(condition_columns: list, version_fr: str, behavior
                 event_ind = tuple(event_entry[db.md.preproc_imports['events']['index']])
                 condition = tuple(event_entry[condition_columns])
                 timeseries = bufr.data[event_ind]
-                data_entry = [unit_ind, event_ind, condition, ii, timeseries]
+                data_entry = [unit_ind, unit_code, event_ind, condition, ii, timeseries]
                 # append to data_list
                 data_list.append(data_entry)
     # create pbt
-    pbt = PopulationBehavioralTimeseries(condition_columns, timebin_interval)
+    pbt = PseudoPopulationBehavioralTimeseries(condition_columns, timebin_interval)
     pbt.add_data_rows_from_list(data_list)
     return pbt
 

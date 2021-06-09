@@ -14,7 +14,6 @@ def main():
     version_aov = args[2]
     version_fr = args[3]
 
-
     valid_thr = 15
 
     # version parameters
@@ -87,7 +86,7 @@ def main():
     ec_mask = (selection_mask & levels_mask & cnj_mask)
     events_conditions_slice = events_conditions.loc[ec_mask][columns_events_conditions]
 
-    # meracge into final events_conditions_df
+    # merge into final events_conditions_df
     events_conditions_df = pd.merge(events_conditions_slice, trials_slice, on=trials_index)
     for x_i, levels_i in levels_dict.items():
         events_conditions_df[x_i].cat.set_categories(levels_i, inplace=True)
