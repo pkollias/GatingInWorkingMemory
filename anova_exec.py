@@ -19,7 +19,7 @@ def main():
     levels_dict = v_aov_params['levels_dict']
     group_column_list = v_aov_params['group_column_list']
 
-    v_fr_params = anova_version_fr_params(version_fr)
+    v_fr_params = version_fr_params(version_fr)
     t_start = v_fr_params['t_start']
     t_end = v_fr_params['t_end']
     timebin = v_fr_params['timebin']

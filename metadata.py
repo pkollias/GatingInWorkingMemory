@@ -5,6 +5,25 @@ from re import findall
 from os import makedirs
 from environment import *
 from scipy import signal
+import importlib
+
+
+class PickleProtocol:
+    def __init__(self, level):
+        self.previous = pickle.HIGHEST_PROTOCOL
+        self.level = level
+
+    def __enter__(self):
+        importlib.reload(pickle)
+        pickle.HIGHEST_PROTOCOL = self.level
+
+    def __exit__(self, *exc):
+        importlib.reload(pickle)
+        pickle.HIGHEST_PROTOCOL = self.previous
+
+
+def pickle_protocol(level):
+    return PickleProtocol(level)
 
 
 class MetaData:
@@ -70,15 +89,17 @@ class MetaData:
         return path.join(dest_path, fname)
 
     def df_saver(self, table, path):
-        table.reset_index(drop=True).to_pickle(path)
+        with pickle_protocol(5):
+            table.reset_index(drop=True).to_pickle(path)
 
     def df_loader(self, path, index):
-        df = pd.read_pickle(path)
-        try:
-            df.set_index(index, drop=False, inplace=True)
-            return df
-        except (KeyError, ValueError) as e:
-            return df
+        with pickle_protocol(5):
+            df = pd.read_pickle(path)
+            try:
+                df.set_index(index, drop=False, inplace=True)
+                return df
+            except (KeyError, ValueError) as e:
+                return df
 
     def db_base_loader(self, keys_list=None):
         db = {}
@@ -92,13 +113,15 @@ class MetaData:
             self.df_saver(df, self.preproc_dest_path(self.preproc_imports[k]['filename']))
 
     def np_saver(self, variable, path):
-        with open(path, 'wb') as f:
-            pickle.Pickler(f).dump(variable)
+        with pickle_protocol(5):
+            with open(path, 'wb') as f:
+                pickle.Pickler(f).dump(variable)
 
     def np_loader(self, path):
-        return pd.read_pickle(path)
-        # with open(path, 'rb') as f:
-        #     return pickle.Unpickler(f).load()
+        with pickle_protocol(5):
+            return pd.read_pickle(path)
+            # with open(path, 'rb') as f:
+            #     return pickle.Unpickler(f).load()
     
     def image_to_group_image_pair(self, im):
         group_ind, im_ind = np.unravel_index(int(im)-1, (2, 2), order='F')
@@ -240,6 +263,42 @@ class MetaData:
         gcs = row['GatingCondSpecialized']
         sss = row['StageStimSpecialized']
         return gcs if sss == 'S00' else np.nan
+
+    def df_GatedStimulusPostDistMemory(self, row):
+        return row['PostRuleStimCategory'] if row['GatedStimulusSerialPositionCentered'] == 'Gating+1' else np.nan
+
+    def df_SensoryMemoryRelation(self, row):
+
+        if pd.isna(row['GatingCondExtended']) or row['GatingCondExtended'] in ['Cue', 'Target'] or row['StageStimExtended'] == 'S00':
+            return np.nan
+        elif row['StageStimExtended'] == row['RuleStimCategory']:
+            return 'Identity'
+        elif int(row['StageStimExtended'][1]) == int(row['RuleGroup']):
+            return 'SameGroup'
+        else:
+            return 'DiffGroup'
+
+    def df_SM_SensoryAbstractGroup(self, row):
+
+        if pd.isna(row['SensoryMemoryRelation']) or row['SensoryMemoryRelation'] == 'SameGroup':
+            return np.nan
+        elif row['SensoryMemoryRelation'] == 'Identity':
+            return 'AbstractGroup' + row['RuleCueCategory'][2]
+        elif row['SensoryMemoryRelation'] == 'DiffGroup':
+            return 'AbstractGroup' + row['StageStimExtended'][2]
+        else:
+            return np.nan
+
+    def df_SM_MemoryAbstractGroup(self, row):
+
+        if pd.isna(row['SensoryMemoryRelation']) or row['SensoryMemoryRelation'] == 'SameGroup':
+            return np.nan
+        elif row['SensoryMemoryRelation'] == 'Identity':
+            return 'AbstractGroup' + row['RuleCueCategory'][2]
+        elif row['SensoryMemoryRelation'] == 'DiffGroup':
+            return 'AbstractGroup' + row['RuleStimCategory'][2]
+        else:
+            return np.nan
 
     def beh_unit_fr_cond_col(self, y, step, segment):
         return '{0:s}_step{1:04.0f}ms_{2:04.0f}_{2:04.0f}'.format(y, step, segment[0], segment[1])

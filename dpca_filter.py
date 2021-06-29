@@ -3,14 +3,16 @@ from rec_analyses import *
 
 
 def main():
+
+    args_version = sys.argv[1:]
+
     """ factor=, fr=, counts_thr=, area_list=, subject=, [overwrite=] """
     # args_version = ['factor=StimulusGatingPreBool', 'fr=ConcatFactor2', 'counts_thr=15',
-    # 'area_list=PFC_Stri', 'subject=Gonzo_Oscar']
+    #                 'area_list=PFC_Stri', 'subject=Gonzo_Oscar']
+    # args_version = ['job_id=0', 'overwrite=True']
 
     # load analysis parameters
-    args = sys.argv
-    args_version = args[1:]
-    version = parse_vars(args_version)
+    version = job_scheduler(args_version, args_from_parse_func)
 
     # create analysis object
     dpca = DemixedPrincipalComponent(DataBase(['sessions', 'units', 'events', 'conditions']), version)
@@ -46,6 +48,40 @@ def main():
                                     columns=md.proc_imports['behavioral_units']['index'])
 
     md.np_saver(behavioral_units, target_filename)
+
+
+def args_from_parse_func(parse_version):
+
+    args_version_list = []
+
+    for area_list in ['PFC_Stri', 'PFC']:
+
+        args_factor = ['factor=GatedStimulus']
+        args_fr = ['fr=ConcatFactor2']
+        args_counts_thr = ['counts_thr=20']
+        args_area_list = ['area_list={0:s}'.format(area_list)]
+        args_subject = ['subject=Gonzo_Oscar']
+        args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list, args_subject)))))
+
+        args_factor = ['factor=GatingPreBool']
+        args_fr = ['fr=ConcatFactor2']
+        args_counts_thr = ['counts_thr=20']
+        args_area_list = ['area_list={0:s}'.format(area_list)]
+        args_subject = ['subject=Gonzo_Oscar']
+        args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list, args_subject)))))
+
+        args_factor = ['factor=GatedStimulusPostDistMemory']
+        args_fr = ['fr=ConcatFactor2']
+        args_counts_thr = ['counts_thr=10']
+        args_area_list = ['area_list={0:s}'.format(area_list)]
+        args_subject = ['subject=Gonzo_Oscar']
+        args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list, args_subject)))))
+
+    args_version_from_job = args_version_list[int(parse_version['job_id'])]
+    if 'overwrite' in parse_version.keys():
+        args_version_from_job.append('overwrite={0:s}'.format(parse_version['overwrite']))
+
+    return args_version_from_job
 
 
 main()

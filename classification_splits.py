@@ -1,6 +1,5 @@
 import sys
 from rec_analyses import *
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 
 def main():
@@ -8,8 +7,8 @@ def main():
     args_version = sys.argv[1:]
 
     """ class=, balance, fr=, counts_thr=, area_list=, subject=, area=, mode=, mode_seed=, pseudo_seed=, split=, [overwrite=] """
-    # args_version = ['class=GatingPreBool', 'balance=Stimulus', 'fr=ConcatFactor2', 'counts_thr=15',
-    #                 'area_list=PFC_Stri', 'subject=Gonzo_Oscar', 'area=PFC', 'mode=Normal',
+    # args_version = ['class=Stimulus', 'balance=StageGatingCentered', 'fr=ConcatFactor2', 'counts_thr=15',
+    #                 'area_list=PFC_Stri', 'subject=Gonzo_Oscar', 'area=PFC', 'mode=Bootstrap',
     #                 'mode_seed=0', 'pseudo_seed=0', 'split=StratifiedStim']
     # args_version = ['job_id=0', 'overwrite=True']
 
@@ -22,9 +21,6 @@ def main():
 
     # load population behavioral timeseries
     pbt = md.np_loader(classifier.get_path_base('pbt', classifier.get_assemble_stem()))
-    pbt.crop_timeseries(-50, 1000)
-    timebin_interval = pbt.timebin_interval
-    t = timebin_interval.split_to_bins_offset()
     pseudosession_inds_array, class_array = classifier.generate_pseudoarray_inds(pbt, int(version['pseudo_seed']))
 
     X_inds_array = pseudosession_inds_array
@@ -37,21 +33,60 @@ def main():
 
 def args_from_parse_func(parse_version):
 
-    args_class = ['class=GatingPreBool']
-    args_balance = ['balance=Stimulus']
-    args_fr = ['fr=ConcatFactor2']
-    args_counts_thr = ['counts_thr=15']
-    args_area_list = ['area_list=PFC_Stri']
-    args_subject = ['subject=Gonzo_Oscar']
-    args_area = ['area=PFC', 'area=Stri']
-    args_mode = ['mode=Bootstrap', 'mode=BootstrapEvents']
-    args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(100)]
-    args_pseudo_seed = ['pseudo_seed=0']
-    args_split = ['split=StratifiedStim', 'split=OneStimTest', 'split=OneStimTrain',
-                  'split=WithinGroupTransfer', 'split=AcrossGroupTransfer']
-    args_version_list = list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
-                                                    args_area_list, args_subject, args_area, args_mode,
-                                                    args_mode_seed, args_pseudo_seed, args_split))))
+    args_version_list = []
+
+    for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
+        for class_i, balance in [('Stimulus', 'StageGatingPrePostMemory'), ('Stimulus', 'StageGatingCenteredMemory'),
+                                 ('GatedStimulus', 'StageGatingPrePostSensory'), ('GatedStimulus', 'StageGatingCenteredSensory')]:
+            args_class = ['class={0:s}'.format(class_i)]
+            args_balance = ['balance={0:s}'.format(balance)]
+            args_fr = ['fr=ConcatFactor2']
+            args_counts_thr = ['counts_thr=12']
+            args_area_list = ['area_list={0:s}'.format(area_list)]
+            args_subject = ['subject=Gonzo_Oscar']
+            args_area = ['area={0:s}'.format(area)]
+            args_mode = ['mode=Normal']
+            args_mode_seed = ['mode_seed=0']
+            args_pseudo_seed = ['pseudo_seed={0:d}'.format(ps_i) for ps_i in range(5)]
+            args_split = ['split=StratifiedBalanceSplit_StimHalf']
+            args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+                                                                 args_area_list, args_subject, args_area, args_mode,
+                                                                 args_mode_seed, args_pseudo_seed, args_split)))))
+
+    # for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri')]:
+    #     for session in range(42):
+    #         args_class = ['class=GatingPreBool']
+    #         args_balance = ['balance=Stimulus']
+    #         args_fr = ['fr=WindowGatingClassify', 'fr=ConcatFactor2']
+    #         args_counts_thr = ['counts_thr=15']
+    #         args_area_list = ['area_list={0:s}'.format(area_list)]
+    #         args_subject = ['subject={0:d}'.format(session)]
+    #         args_area = ['area={0:s}'.format(area)]
+    #         args_mode = ['mode=Normal']
+    #         args_mode_seed = ['mode_seed=0']
+    #         args_pseudo_seed = ['pseudo_seed=0']
+    #         args_split = ['split=StratifiedStim']
+    #         args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+    #                                                              args_area_list, args_subject, args_area, args_mode,
+    #                                                              args_mode_seed, args_pseudo_seed, args_split)))))
+    #
+    # for balance in ['StageGatingCenteredGatingOnly', 'StageGatingCenteredPostDist1Only']:
+    #     for session in range(42):
+    #         args_class = ['class=GatedStimulus']
+    #         args_balance = ['balance={0:s}'.format(balance)]
+    #         args_fr = ['fr=WindowMemoryClassify', 'fr=ConcatFactor2']
+    #         args_counts_thr = ['counts_thr=15']
+    #         args_area_list = ['area_list=PFC']
+    #         args_subject = ['subject={0:d}'.format(session)]
+    #         args_area = ['area=PFC']
+    #         args_mode = ['mode=Normal']
+    #         args_mode_seed = ['mode_seed=0']
+    #         args_pseudo_seed = ['pseudo_seed=0']
+    #         args_split = ['split=StratifiedBalanceSplit']
+    #         args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+    #                                                              args_area_list, args_subject, args_area, args_mode,
+    #                                                              args_mode_seed, args_pseudo_seed, args_split)))))
+
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():
         args_version_from_job.append('overwrite={0:s}'.format(parse_version['overwrite']))

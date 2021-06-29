@@ -21,7 +21,7 @@ def main():
     v_aov_params = anova_version_aov_params(version_aov, version_fr)
     x_factors = v_aov_params['x_factors']
 
-    v_fr_params = anova_version_fr_params(version_fr)
+    v_fr_params = version_fr_params(version_fr)
     t_start = v_fr_params['t_start']
     t_end = v_fr_params['t_end']
     timebin = v_fr_params['timebin']

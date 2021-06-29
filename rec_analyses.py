@@ -4,6 +4,7 @@ from rec import TimebinInterval
 from rec_db import *
 from rec_format import *
 from versioning import *
+from operator import itemgetter
 from dPCA import dPCA
 from copy import copy
 from itertools import chain
@@ -62,7 +63,7 @@ class ObjectTimeseries:
         self.series = series
 
     def crop_timeseries(self, t_start: int, t_end: int):
-        ''' t_start represents onset of first window and t_end represents offset of last window '''
+        """ t_start represents onset of first window and t_end represents offset of last window """
         crop_start_ind = self.timebin_interval.split_to_bins_offset().index(t_start)
         crop_end_ind = self.timebin_interval.split_to_bins_offset().index(t_end)
         crop_slice = slice(crop_start_ind, crop_end_ind + 1)
@@ -138,7 +139,7 @@ class BehavioralUnitFiringRate(Analysis):
 
     def get_data_filename(self, ind: tuple) -> str:
         version_fr = self.version['fr']
-        v_fr_params = anova_version_fr_params(version_fr)
+        v_fr_params = version_fr_params(version_fr)
         return MetaData().proc_dest_path(path.join('BehavioralUnits', 'FiringRates',
                                                    behunit_params_str(version_fr,
                                                                       v_fr_params['timebin'], v_fr_params['timestep'],
@@ -421,7 +422,8 @@ class DemixedPrincipalComponent(Analysis):
         # if unit has events for all conditions and valid events are more than counts threshold return list of events
         events_inds = []
         for condition in condition_list:
-            if condition in condition_grouper.groups.keys() and len(valid_events(group_inds(condition_grouper.get_group(condition)))) >= int(self.version['counts_thr']):
+            if condition in condition_grouper.groups.keys() and len(condition_grouper.groups[condition]) \
+                    and len(valid_events(group_inds(condition_grouper.get_group(condition)))) >= int(self.version['counts_thr']):
                 events_inds.extend(valid_events(group_inds(condition_grouper.get_group(condition))))
             else:
                 events_inds = []
@@ -439,6 +441,7 @@ class DemixedPrincipalComponent(Analysis):
         join = factor_dpca_join_mapping(labels)
         self.dpca_obj = dPCA.dPCA(labels=labels, join=join, regularizer='auto')
         self.dpca_obj.n_trials = 5
+        self.dpca_obj.n_components = X_trial.shape[1]
         self.dpca_obj.protect = ['t']
         X_fit = self.dpca_obj.fit_transform(X, X_trial)
         self.dpca_obj.join = self.dpca_obj._join  # TODO: figure out why this throws bug if not added here
@@ -450,16 +453,20 @@ class DemixedPrincipalComponent(Analysis):
         version_fr = self.version['fr']
         version_factor = self.version['factor']
         counts_thr = int(self.version['counts_thr'])
-        v_fr_params = anova_version_fr_params(version_fr)
+        v_fr_params = version_fr_params(version_fr)
+        if type(stem) == str:
+            stem_path = stem
+        elif type(stem) == tuple:
+            stem_path = path.join(*stem)
         return MetaData().proc_dest_path(path.join('BehavioralUnits', 'DemixedPCA', version_factor,
                                                    behunit_params_str(version_fr,
                                                                       v_fr_params['timebin'], v_fr_params['timestep'],
                                                                       v_fr_params['t_start'], v_fr_params['t_end']),
-                                                   '{0:03d}'.format(counts_thr), *stem),
+                                                   '{0:03d}'.format(counts_thr), stem_path),
                                          '{0:s}.pkl'.format(filename))
 
     def get_wrangle_stem(self) -> Union[str, tuple]:
-        return 'stem'
+        return 'wrangle'
 
     def get_filter_stem(self) -> Union[str, tuple]:
         area_list_str = list_param_to_str(self.version['area_list'])
@@ -512,6 +519,7 @@ class ClassificationAnalysis(Analysis):
         # filter only events of correct trials, observed by unit and belonging on condition_list
         events_conditions_db = self.db.tables['events_conditions']
         events_conditions_unit = events_conditions_db.loc[bufr.data.keys()]
+        # get only correct trials and trials belonging in condition_list
         events_conditions = events_conditions_unit.loc[events_conditions_unit['StopCondition'].eq(1) & \
                                                        [el in condition_list for el in zip_columns(events_conditions_unit, condition_columns)]]
         ect_operator = TableOperator(events_conditions)
@@ -541,7 +549,7 @@ class ClassificationAnalysis(Analysis):
         pseudotrial_result = generate_pseudotrial_from_behavioral_units(behavioral_units,
                                                                         self.get_assembly_condition_columns(),
                                                                         self.get_class_condition_columns(),
-                                                                        int(hash_to_seed(hash((seed, '_'.join(self.version.values()))))))
+                                                                        int(get_seed(hash((seed, '_'.join(self.version.values()))))))
         pseudotrial, unit_inds, unit_codes, class_codes, classes = pseudotrial_result
 
         # get C ordered list of behavioral units for X array
@@ -559,7 +567,7 @@ class ClassificationAnalysis(Analysis):
         C_order_pbt_iloc_inds = behavioral_unit_inds.reset_index(drop=False).set_index('Behavioral_PseudoUnit').loc[C_order_bu_inds]['index']
         pseudoarray_flat_inds = pbt.df.loc[C_order_pbt_iloc_inds].index.to_numpy()
         pseudoarray_inds = pseudoarray_flat_inds.reshape(len(classes), len(unit_inds))
-        class_array = np.array(classes)
+        class_array = np.array(class_codes)
 
         return pseudoarray_inds, class_array
 
@@ -594,15 +602,52 @@ class ClassificationAnalysis(Analysis):
                 test_inds = np.random.permutation(np.array(pbt_test_index_bool.loc[pbt_test_index_bool].index))
                 train_test.append([train_inds, test_inds])
 
+        elif split in ['StratifiedBalanceSplit', 'StratifiedBalanceSplit_StimHalf']:
+
+            # under design assumptions, X_inds_array holds latent (assembly) condition information
+            # in order so we can tile stratify parameter
+            class_columns = classification_version_class(self.version['class'])['condition_columns']
+            num_classes = len(np.unique(pbt.unfold_conditions_df()[class_columns].to_numpy()))
+            assembly_balance_columns = classification_version_balance(self.version['balance'])['condition_columns']
+            assembly_balance_list = classification_version_balance(self.version['balance'])['condition_list']
+            split_ignore_columns = classification_version_balance(self.version['balance'])['split_ignore_columns']
+            split_ignore_columns_index = list(map(assembly_balance_columns.index, split_ignore_columns))
+            split_ignore_columns_list = [assembly_balance_list[ind] for ind in split_ignore_columns_index]
+            num_values_to_ignore = list(map(len, split_ignore_columns_list))
+            # assumption that split_columns have to be last in sequence within assembly balance columns
+            balance_columns = [col for col in assembly_balance_columns if col not in split_ignore_columns]
+
+            sub_pbt_df = zip_columns(pbt.unfold_conditions_df(), balance_columns, 'Balance_Condition') \
+                if len(balance_columns) > 1 \
+                else pbt.unfold_conditions_df()[balance_columns]
+            conditions_to_split = np.unique(sub_pbt_df.to_numpy())
+            if split in ['StratifiedBalanceSplit']:
+                num_conditions_to_split = len(conditions_to_split)
+                group_splits = np.arange(n_trials).reshape(num_classes, num_conditions_to_split, -1).transpose((1, 0, 2)).reshape(num_conditions_to_split, -1)
+                condition_stratify = np.tile(np.arange(num_classes * np.product(num_values_to_ignore)),
+                                             (instances_per_condition, 1)).transpose().reshape(-1)
+            elif split in ['StratifiedBalanceSplit_StimHalf']:
+                conditions_to_split = list(product(conditions_to_split, [1, 2]))
+                num_conditions_to_split = len(conditions_to_split)
+                group_splits = np.arange(n_trials).reshape(num_classes, int(num_conditions_to_split / 2), -1).transpose((1, 0, 2)).reshape(num_conditions_to_split, -1)
+                condition_stratify = np.tile(np.arange(int((num_classes * np.product(num_values_to_ignore)) / 2)),
+                                             (instances_per_condition, 1)).transpose().reshape(-1)
+
+            train_test = {condition: [train_test_split(group_split, train_size=2 / 3,
+                                                       stratify=condition_stratify, random_state=ii)
+                                      for ii in range(20)]
+                          for cond_ind, (condition, group_split)
+                          in enumerate(zip(conditions_to_split, group_splits))}
+
         return train_test
 
     # IO
-    def get_path_base(self, filename, stem='') -> str:
+    def get_path_base(self, filename, stem='', cross=None) -> str:
         version_fr = self.version['fr']
-        version_class = self.version['class']
-        version_balance = self.version['balance']
+        version_class = self.version['class'] if not cross else ''.join(sorted(self.version['class_list'].split('_'))) # TODO Correct !!! to join the split version
+        version_balance = self.version['balance'] if not cross else ''.join(sorted(self.version['balance_list'].split('_'))) # TODO Correct !!! to join the split version
         counts_thr = int(self.version['counts_thr'])
-        v_fr_params = anova_version_fr_params(version_fr)
+        v_fr_params = version_fr_params(version_fr)
         if type(stem) == str:
             stem_path = stem
         elif type(stem) == tuple:
@@ -636,7 +681,7 @@ class ClassificationAnalysis(Analysis):
         return (*self.get_train_stem(), 'pseudo_session_{0:03d}'.format(int(self.version['pseudo_seed'])))
 
     def get_train_test_stem(self) -> Union[str, tuple]:
-        return (*self.get_pseudo_session_stem(), 'train_test')
+        return (*self.get_pseudo_session_stem(), 'train_test', 'split_{0:s}'.format(self.version['split']))
 
 
 # ### Misc ### #

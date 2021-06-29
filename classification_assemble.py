@@ -7,7 +7,7 @@ def main():
     args_version = sys.argv[1:]
 
     """ class=, balance, fr=, counts_thr=, area_list=, subject=, area=, mode=, mode_seed=, [overwrite=] """
-    # args_version = ['class=GatingPreBool', 'balance=Stimulus', 'fr=ConcatFactor2', 'counts_thr=15',
+    # args_version = ['class=Stimulus', 'balance=StageGatingCentered', 'fr=ConcatFactor2', 'counts_thr=30',
     # 'area_list=PFC_Stri', 'subject=Gonzo_Oscar', 'area=PFC', 'mode=Normal', 'mode_seed=0']
     # args_version = ['job_id=0']
 
@@ -38,8 +38,9 @@ def main():
 
     # process
     # get behavioral unit indices
-    buf_units = list(set(zip_columns(behavioral_units_filter, units_index)))
+
     # filter units table with behavioral units
+    buf_units = zip_columns(behavioral_units_filter, units_index).unique()
     db.tables['units'] = db.tables['units'].loc[buf_units]
     units = db.tables['units']
 
@@ -49,7 +50,7 @@ def main():
     replace_units = classifier.version['mode'] in ['Bootstrap']
     seed_units = mode_seed if replace_units else 0
     area_units = units.loc[units['Area'].eq(area)].sample(min_size,
-                                                          random_state=hash_to_seed(('units', seed_units)),
+                                                          random_state=get_seed(('units', seed_units)),
                                                           replace=replace_units).index
 
     # TODO: modifications for replacement sampling of units, correct later
@@ -68,7 +69,7 @@ def main():
     replace_events = classifier.version['mode'] in ['Bootstrap', 'BootstrapEvents']
     seed_events = mode_seed
     behavioral_units = area_conditions_grouper.sample(counts_thr,
-                                                      random_state=hash_to_seed(('events', seed_events)),
+                                                      random_state=get_seed(('events', seed_events)),
                                                       replace=replace_events)
 
     pbt = pbt_from_behavioral_units(condition_columns, version['fr'], behavioral_units, db)
@@ -78,22 +79,60 @@ def main():
 
 def args_from_parse_func(parse_version):
 
-    args_class = ['class=GatingPreBool']
-    args_balance = ['balance=Stimulus']
-    args_fr = ['fr=ConcatFactor2']
-    args_counts_thr = ['counts_thr=15']
-    args_area_list = ['area_list=PFC_Stri']
-    args_subject = ['subject=Gonzo_Oscar']
-    args_area = ['area=PFC', 'area=Stri']
-    args_mode = ['mode=Bootstrap', 'mode=BootstrapEvents']
-    args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(100)]
-    args_version_list = list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr, args_area_list,
-                                                    args_subject, args_area, args_mode, args_mode_seed))))
+    args_version_list = []
+
+    for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
+        for class_i, balance in [('Stimulus', 'StageGatingPrePostMemory'), ('Stimulus', 'StageGatingCenteredMemory'),
+                                 ('GatedStimulus', 'StageGatingPrePostSensory'), ('GatedStimulus', 'StageGatingCenteredSensory')]:
+            args_class = ['class={0:s}'.format(class_i)]
+            args_balance = ['balance={0:s}'.format(balance)]
+            args_fr = ['fr=ConcatFactor2']
+            args_counts_thr = ['counts_thr=12']
+            args_area_list = ['area_list={0:s}'.format(area_list)]
+            args_subject = ['subject=Gonzo_Oscar']
+            args_area = ['area={0:s}'.format(area)]
+            args_mode = ['mode=Normal']
+            args_mode_seed = ['mode_seed=0']
+            args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+                                                                 args_area_list, args_subject, args_area,
+                                                                 args_mode, args_mode_seed)))))
+
+    # for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri')]:
+    #     for session in range(42):
+    #         args_class = ['class=GatingPreBool']
+    #         args_balance = ['balance=Stimulus']
+    #         args_fr = ['fr=WindowGatingClassify', 'fr=ConcatFactor2']
+    #         args_counts_thr = ['counts_thr=15']
+    #         args_area_list = ['area_list={0:s}'.format(area_list)]
+    #         args_subject = ['subject={0:d}'.format(session)]
+    #         args_area = ['area={0:s}'.format(area)]
+    #         args_mode = ['mode=Normal']
+    #         args_mode_seed = ['mode_seed=0']
+    #         args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+    #                                                              args_area_list, args_subject, args_area,
+    #                                                              args_mode, args_mode_seed)))))
+    #
+    # for balance in ['StageGatingCenteredGatingOnly', 'StageGatingCenteredPostDist1Only']:
+    #     for session in range(42):
+    #         args_class = ['class=GatedStimulus']
+    #         args_balance = ['balance={0:s}'.format(balance)]
+    #         args_fr = ['fr=WindowMemoryClassify', 'fr=ConcatFactor2']
+    #         args_counts_thr = ['counts_thr=15']
+    #         args_area_list = ['area_list=PFC']
+    #         args_subject = ['subject={0:d}'.format(session)]
+    #         args_area = ['area=PFC']
+    #         args_mode = ['mode=Normal']
+    #         args_mode_seed = ['mode_seed=0']
+    #         args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+    #                                                              args_area_list, args_subject, args_area,
+    #                                                              args_mode, args_mode_seed)))))
+
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():
         args_version_from_job.append('overwrite={0:s}'.format(parse_version['overwrite']))
 
     return args_version_from_job
+
 
 
 main()

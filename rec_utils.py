@@ -1,9 +1,10 @@
 from rec_analyses import *
+from functools import reduce
 
 
 def pbt_from_behavioral_units(condition_columns: list, version_fr: str, behavioral_units: pd.core.frame.DataFrame, db: DataBase) -> PopulationBehavioralTimeseries:
 
-    v_fr_params = anova_version_fr_params(version_fr)
+    v_fr_params = version_fr_params(version_fr)
     t_start = v_fr_params['t_start']
     t_end = v_fr_params['t_end']
     timebin = v_fr_params['timebin']
@@ -65,3 +66,15 @@ def fbt_df_from_dPCA(X_factor: np.ndarray, records, decomp_obj, timebin_interval
     records_base_df = pd.DataFrame(records_base, columns=['Factor', 'Condition', 'Instance'])
     records_base_df['Timeseries'] = list(X_factor_base.reshape(len(records_base_df), num_timebins))
     return records_base_df
+
+
+def conjoint_units_events(units_events_list, filename_list):
+
+    md = MetaData()
+
+    index = units_events_list[0].index
+    mask = reduce(lambda x, y: ~(x.apply(bool) & y.apply(bool)), units_events_list)
+    empty = pd.Series([[] for _ in range(len(index))], index=index)
+
+    for valid_units_events, target_filename in zip(units_events_list, filename_list):
+        md.np_saver(valid_units_events.mask(mask, empty), target_filename)

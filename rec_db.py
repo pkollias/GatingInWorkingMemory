@@ -1,6 +1,6 @@
 from __future__ import annotations
 from metadata import *
-from rec_format import hash_to_seed
+from rec_format import get_seed
 
 
 class DataBase:
@@ -56,7 +56,7 @@ class DataBase:
         events_index = self.md.preproc_imports['events']['index']
         self.tables['events_conditions'] = pd.merge(self.tables['events_conditions'].reset_index(drop=True),
                                                     self.tables['trials'].reset_index(drop=True),
-                                                    on=trials_index).set_index(events_index)
+                                                    on=trials_index, suffixes=('', '_trials')).set_index(events_index)
     # activity
 
     def timestamp_interval_within_activity(self, start, end):
@@ -78,11 +78,14 @@ def unzip_columns(table, old_column, new_column_names):
 
 def timestamp_interval_within_activity(interval_start, interval_end, activity_collection):
 
-    return (activity_collection['SegmentStart'].le(interval_start) &
-            activity_collection['SegmentEnd'].gt(interval_start)).any() \
-           and \
-           (activity_collection['SegmentStart'].le(interval_end) &
-            activity_collection['SegmentEnd'].gt(interval_end)).any()
+    if np.isnan(interval_start) or np.isnan(interval_end):
+        return False
+    else:
+        return (activity_collection['SegmentStart'].le(interval_start) &
+                activity_collection['SegmentEnd'].gt(interval_start)).any() \
+               and \
+               (activity_collection['SegmentStart'].le(interval_end) &
+                activity_collection['SegmentEnd'].gt(interval_end)).any()
 
 
 def generate_pseudotrial_from_behavioral_units(behavioral_units, assembly_condition_columns, class_condition_columns, seed):
@@ -99,7 +102,7 @@ def generate_pseudotrial_from_behavioral_units(behavioral_units, assembly_condit
     # util functions for shuffled pseudotrial generation
     def zip_events(df): return zip_columns(df, events_index + ['Instance'], 'PseudoEvent')
     # ensure that each group has its own seed
-    def shuffle_group_rows(group): return group.groupby(assembly_condition_columns).sample(frac=1, random_state=hash_to_seed((seed, group.name)))
+    def shuffle_group_rows(group): return group.groupby(assembly_condition_columns).sample(frac=1, random_state=get_seed((seed, group.name)))
     def apply_func(group): return list(zip_events(shuffle_group_rows(group)))
 
     # get transpose of pseudotrial event indices by shuffling events within condition and then stacking together

@@ -8,7 +8,7 @@ def main():
 
     """ class=, balance, fr=, counts_thr=, area_list=, subject=, [overwrite=] """
     # args_version = ['class=Stimulus', 'balance=StageGatingCentered', 'fr=ConcatFactor2', 'counts_thr=15',
-    # 'area_list=PFC_Stri', 'subject=Gonzo_Oscar']
+    # 'area_list=PFC_Stri', 'subject=0']
     # args_version = ['job_id=0']
 
     # load analysis parameters
@@ -36,7 +36,7 @@ def main():
     area_list_units = units['Area'].isin(area_list)
     # subject units
     sessions = db.tables['sessions']
-    subject_sessions = sessions.loc[sessions['Subject'].isin(classifier.version['subject'].split('_'))].index
+    subject_sessions = [sessions.iloc[int(classifier.version['subject'])].name]  ### TODO: only difference, can edit base function
     subject_units = units['Session'].isin(subject_sessions)
     # apply filters
     db.tables['units'] = units.loc[valid_units & single_units & area_list_units & subject_units]
@@ -55,18 +55,26 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    for class_i, balance in [('Stimulus', 'StageGatingPrePostMemory'), ('Stimulus', 'StageGatingCenteredMemory'),
-                             ('GatedStimulus', 'StageGatingPrePostSensory'), ('GatedStimulus', 'StageGatingCenteredSensory')]:
-        for counts_thr in ['12']:
-            for area_list in ['PFC', 'Stri', 'IT']:
-                args_class = ['class={0:s}'.format(class_i)]
-                args_balance = ['balance={0:s}'.format(balance)]
-                args_fr = ['fr=ConcatFactor2']
-                args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
-                args_area_list = ['area_list={0:s}'.format(area_list)]
-                args_subject = ['subject=Gonzo_Oscar']
-                args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
-                                                                     args_area_list, args_subject)))))
+    # for session in range(42):
+    #     args_class = ['class=GatingPreBool']
+    #     args_balance = ['balance=Stimulus']
+    #     args_fr = ['fr=WindowGatingClassify']
+    #     args_counts_thr = ['counts_thr=15']
+    #     args_area_list = ['area_list=PFC', 'area_list=Stri']
+    #     args_subject = ['subject={0:d}'.format(session)]
+    #     args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+    #                                                          args_area_list, args_subject)))))
+
+    for session in range(42):
+        args_class = ['class=GatedStimulus']
+        args_balance = args_balance = ['balance=StageGatingCenteredMemoryGatingOnly', 'balance=StageGatingCenteredMemoryPostDist1Only']
+        # ['balance=StageGatingCenteredGatingOnly', 'balance=StageGatingCenteredPostDist1Only']
+        args_fr = ['fr=WindowMemoryClassify']
+        args_counts_thr = ['counts_thr=6', 'counts_thr=9', 'counts_thr=15']
+        args_area_list = ['area_list=PFC']
+        args_subject = ['subject={0:d}'.format(session)]
+        args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+                                                             args_area_list, args_subject)))))
 
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():

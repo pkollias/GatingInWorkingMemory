@@ -1,3 +1,6 @@
+from hashlib import blake2b
+
+
 def behunit_params_str(version, timebin, timestep, t_start, t_end):
 
     return '{0:s}_bin{1:04d}_step{2:04d}_t{3:04d}_t{4:04d}'.format(version, timebin, timestep, t_start, t_end).replace('-', 'n')
@@ -37,8 +40,10 @@ def factor_filter_params_str(filter_params_list_str, counts_thr, area_list_str):
 # General
 
 
-def hash_to_seed(object):
-    return hash(object) % 2 ** 32
+def get_seed(object):
+    object_str = str(object)
+    seed = int(blake2b(object_str.encode('utf-8'), digest_size=3).hexdigest(), 16)
+    return seed
 
 
 def t_strnum_to_str(t):

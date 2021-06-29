@@ -22,7 +22,7 @@ def main():
     # load all anova_dicts
     for version_aov in version_aov_list.split('_'):
 
-        v_fr_params = anova_version_fr_params(version_fr)
+        v_fr_params = version_fr_params(version_fr)
         t_start = v_fr_params['t_start']
         t_end = v_fr_params['t_end']
         timebin = v_fr_params['timebin']

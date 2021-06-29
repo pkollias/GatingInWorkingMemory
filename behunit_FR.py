@@ -10,7 +10,7 @@ def main():
     args = sys.argv
     u_iloc = int(args[1])
     version_fr = args[2]
-    v_fr_params = anova_version_fr_params(version_fr)
+    v_fr_params = version_fr_params(version_fr)
     t_start = v_fr_params['t_start']
     t_end = v_fr_params['t_end']
     timebin = v_fr_params['timebin']

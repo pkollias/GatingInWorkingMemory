@@ -59,13 +59,17 @@ def main():
                                        in zip(list(conditions.StageStimCategory),
                                               list(conditions.StageStimDelayCategory),
                                               list(conditions.StageCategory))]
-
     conditions['StageStimSpecialized'] = [stim_cat if stage_cat in ['CueOnset', 'StimOnset']
                                        else stim_delay_cat + 'D' if stage_cat in ['CueDelay', 'StimDelay'] else np.nan
                                        for stim_cat, stim_delay_cat, stage_cat
                                        in zip(list(conditions.StageStimCategory),
                                               list(conditions.StageStimDelayCategory),
                                               list(conditions.StageCategory))]
+    conditions['GatedStageStimSpecialized'] = [sss if gcs in ['Gating'] else np.nan
+                                               for sss, gcs
+                                               in zip(list(conditions.StageStimSpecialized),
+                                                      list(conditions.GatingCondExtended))]
+
     nextgatingcondextended = list(conditions['GatingCondExtended'])[2:] + [np.nan, np.nan]
     conditions['StageStimExtendedNoTarget'] = [sse if not ngc in ['Target', np.nan, 'Cue'] else np.nan
                                                for (sse, ngc)
@@ -141,27 +145,37 @@ def main():
 
     conditions['GatingNullCondSpecialized'] = conditions.apply(md.df_GatingNullCondSpecialized, axis=1)
 
+    conditions['SensoryMemoryRelation'] = conditions.apply(md.df_SensoryMemoryRelation, axis=1)
+    conditions['SM_SensoryAbstractGroup'] = conditions.apply(md.df_SM_SensoryAbstractGroup, axis=1)
+    conditions['SM_MemoryAbstractGroup'] = conditions.apply(md.df_SM_MemoryAbstractGroup, axis=1)
+
+    conditions['GatedStimulusPostDistMemory'] = conditions.apply(md.df_GatedStimulusPostDistMemory, axis=1)
+
 
 
     # typecasting
     columns = ['Catch', 'GatingCondExtended', 'GatingCondSpecialized', 'GatingBoolSpecialized',
                'GatingCond_From_To_GatingCondExtended', 'GatingCond_From_To_GatingCondSpecialized',
-               'StageStimExtended', 'StageStimSpecialized', 'StageStimExtendedNoTarget', 'NextStageStimExtendedNoTarget',
+               'StageStimExtended', 'StageStimSpecialized', 'GatedStageStimSpecialized',
+               'StageStimExtendedNoTarget', 'NextStageStimExtendedNoTarget',
                'PrevStageStimExtended', 'PrevStageStimSpecialized',
                'PostDistCategory', 'RuleCueCategory', 'RuleStimCategory', 'RuleGroup', 'PrevDistractorSpecialized',
                'DistractorSerialPosition', 'GatedStimulusSerialPosition',
                'DistractorSerialPositionCentered', 'GatedStimulusSerialPositionCentered',
                'GatingCondStageStimCategory', 'BarStatus', 'StimOccurrence',
                'PostStageStimSpecialized', 'PostRuleStimCategory', 'GatPostStageStimSpecialized', 'GatPostRuleStimCategory',
-               'GatingNullCondSpecialized']
+               'GatingNullCondSpecialized', 'SensoryMemoryRelation', 'SM_SensoryAbstractGroup', 'SM_MemoryAbstractGroup',
+               'GatedStimulusPostDistMemory']
     types = ['category', 'category', 'category', 'category',
              'category', 'category',
-             'category', 'category', 'category', 'category',
+             'category', 'category', 'category',
+             'category', 'category',
              'category', 'category',
              'category', 'category', 'category', 'category', 'category',
              'category', 'category',
              'category', 'category',
              'category', 'category', 'category',
+             'category', 'category', 'category', 'category',
              'category', 'category', 'category', 'category',
              'category']
     conditions = conditions.astype(dict(zip(columns, types)))
