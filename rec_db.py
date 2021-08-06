@@ -51,12 +51,18 @@ class DataBase:
 
     # events, conditions, trials
 
-    def merge_events_conditions_trials(self, src: bool = False):
+    def merge_events_conditions_trials(self):
         trials_index = self.md.preproc_imports['trials']['index']
         events_index = self.md.preproc_imports['events']['index']
         self.tables['events_conditions'] = pd.merge(self.tables['events_conditions'].reset_index(drop=True),
                                                     self.tables['trials'].reset_index(drop=True),
                                                     on=trials_index, suffixes=('', '_trials')).set_index(events_index)
+
+    # units_events
+
+    def get_units_events(self):
+        return self.md.np_loader(self.md.preproc_dest_path(path.join('units_events.pkl')))
+
     # activity
 
     def timestamp_interval_within_activity(self, start, end):

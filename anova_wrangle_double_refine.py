@@ -14,8 +14,6 @@ def main():
     version_aov_list = args[2]
     version_fr = args[3]
 
-    valid_thr = 15
-
     # version parameters
     anova_selection_dict_dict = {}
     src_filename_dict = {}

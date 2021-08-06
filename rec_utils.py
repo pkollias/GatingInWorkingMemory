@@ -68,13 +68,25 @@ def fbt_df_from_dPCA(X_factor: np.ndarray, records, decomp_obj, timebin_interval
     return records_base_df
 
 
-def conjoint_units_events(units_events_list, filename_list):
+def conjoint_units_behavioral_lists(units_behavioral_lists_list, filename_list):
 
     md = MetaData()
 
-    index = units_events_list[0].index
-    mask = reduce(lambda x, y: ~(x.apply(bool) & y.apply(bool)), units_events_list)
+    index = units_behavioral_lists_list[0].index
+    mask = reduce(lambda x, y: ~(x.apply(bool) & y.apply(bool)), units_behavioral_lists_list)
     empty = pd.Series([[] for _ in range(len(index))], index=index)
 
-    for valid_units_events, target_filename in zip(units_events_list, filename_list):
-        md.np_saver(valid_units_events.mask(mask, empty), target_filename)
+    for valid_units_behavioral_lists, target_filename in zip(units_behavioral_lists_list, filename_list):
+        md.np_saver(valid_units_behavioral_lists.mask(mask, empty), target_filename)
+
+
+def fr_from_units_events(units_events_filter: pd.core.frame.DataFrame, version_fr: str, db: DataBase, t_ind: int) -> np.ndarray:
+
+    units_events_fr = units_events_filter.drop('valid', axis=1)
+
+    for unit_ind in units_events_fr.columns:
+
+        bufr = BehavioralUnitFiringRate(db, {'fr': version_fr}, unit_ind)
+        units_events_fr[unit_ind] = pd.Series(bufr.data).apply(lambda x: x[t_ind]).reindex(units_events_fr.index)
+
+    return units_events_fr

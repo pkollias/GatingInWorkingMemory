@@ -26,25 +26,30 @@ def main():
     # mark units as valid based on number of events and
     db.merge_events_conditions_trials()
     units = db.tables['units']
-    valid_units_events = units.apply(lambda row: classifier.assess_unit_events(row.name), axis=1)
+    valid_units_behavioral_lists = units.apply(lambda row: classifier.assess_unit_events(row.name), axis=1)
 
-    md.np_saver(valid_units_events, target_filename)
+    md.np_saver(valid_units_behavioral_lists, target_filename)
 
 
 def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    # args_class = ['class=GatingPreBool']
-    # args_balance = ['balance=Stimulus']
-    # args_fr = ['fr=WindowGatingClassify']
-    # args_counts_thr = ['counts_thr=15']
-    # args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
+    args_class = ['class=GatingPreBool']
+    args_balance = ['balance=Stimulus']
+    args_fr = ['fr=WindowGatingClassify']
+    args_counts_thr = ['counts_thr=6', 'counts_thr=9', 'counts_thr=15']
+    args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
 
     args_class = ['class=GatedStimulus']
-    args_balance = ['balance=StageGatingCenteredMemoryGatingOnly', 'balance=StageGatingCenteredMemoryPostDist1Only']
-    # ['balance=StageGatingCenteredGatingOnly', 'balance=StageGatingCenteredPostDist1Only']
-    args_fr = ['fr=WindowMemoryClassify']
+    args_balance = ['balance=StageGatingCenteredSensoryGatingOnly', 'balance=StageGatingCenteredSensoryPostDist1Only']
+    args_fr = ['fr=WindowMemoryClassify', 'fr=WindowInterferenceClassify']
+    args_counts_thr = ['counts_thr=6', 'counts_thr=9', 'counts_thr=15']
+    args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
+
+    args_class = ['class=Stimulus']
+    args_balance = ['balance=StageGatingCenteredMemoryPostDist1Only']
+    args_fr = ['fr=WindowMemoryClassify', 'fr=WindowInterferenceClassify']
     args_counts_thr = ['counts_thr=6', 'counts_thr=9', 'counts_thr=15']
     args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
 

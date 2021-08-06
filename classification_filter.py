@@ -27,8 +27,8 @@ def main():
     # create unit selection filters
     units = db.tables['units']
     # valid units
-    valid_units_events = md.np_loader(classifier.get_path_base('valid_units', classifier.get_wrangle_stem()))
-    valid_units = valid_units_events.apply(bool)
+    valid_units_behavioral_lists = md.np_loader(classifier.get_path_base('valid_units', classifier.get_wrangle_stem()))
+    valid_units = valid_units_behavioral_lists.apply(bool)
     # single units
     single_units = units['UnitNum'].ne(0) & units['RatingCode'].ne(7)
     # area list units
@@ -42,9 +42,9 @@ def main():
     db.tables['units'] = units.loc[valid_units & single_units & area_list_units & subject_units]
 
     # create behavioral_units table
-    units_events = valid_units_events.loc[db.tables['units'].index]
+    units_behavioral_lists = valid_units_behavioral_lists.loc[db.tables['units'].index]
     behavioral_units = pd.DataFrame([(sess, channum, unitnum, trialnum, stageindex)
-                                     for (sess, channum, unitnum), events_list in units_events.iteritems()
+                                     for (sess, channum, unitnum), events_list in units_behavioral_lists.iteritems()
                                      for _, trialnum, stageindex in events_list],
                                     columns=md.proc_imports['behavioral_units']['index'])
 

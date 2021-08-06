@@ -99,18 +99,6 @@ def version_fr_params(version_fr):
         timebin = t_end - t_start
         timestep = timebin
         event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset']}
-    elif version_fr == 'WindowSample':
-        t_start = 0
-        t_end = 385
-        timebin = t_end - t_start
-        timestep = timebin
-        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
-    elif version_fr == 'WindowDelay':
-        t_start = 0
-        t_end = 565
-        timebin = t_end - t_start
-        timestep = timebin
-        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueDelay', 'StimDelay']}
     elif version_fr == 'WindowSampleShift':
         t_start = 50
         t_end = 435
@@ -129,9 +117,27 @@ def version_fr_params(version_fr):
         timebin = t_end - t_start
         timestep = timebin
         event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueDelay', 'StimDelay']}
+    elif version_fr == 'WindowNextEarlySample': #
+        t_start = 950
+        t_end = 1100
+        timebin = t_end - t_start
+        timestep = timebin
+        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
+    elif version_fr == 'WindowNextLateSample': #
+        t_start = 1200
+        t_end = 1350
+        timebin = t_end - t_start
+        timestep = timebin
+        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
     elif version_fr == 'WindowGatingClassify':
         t_start = 200
         t_end = 500
+        timebin = t_end - t_start
+        timestep = timebin
+        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
+    elif version_fr == 'WindowInterferenceClassify': #
+        t_start = 300
+        t_end = 600
         timebin = t_end - t_start
         timestep = timebin
         event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
@@ -375,7 +381,7 @@ def factor_generate_conditions(version_factor):
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['Gating', 'Dist']))
         balance_columns = []
 
-    elif version_factor == 'PostStimulusRuleStim':
+    elif version_factor == 'TargPostStimulusRuleStim':
 
         condition_columns = ['PostStageStimSpecialized', 'PostRuleStimCategory']
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['S11', 'S12', 'S21', 'S22']))
@@ -441,7 +447,7 @@ def factor_dpca_labels_mapping(version_factor):
         return 'sgt'
     elif version_factor == 'RuleStimGating':
         return 'mgt'
-    elif version_factor == 'PostStimulusRuleStim':
+    elif version_factor == 'TargPostStimulusRuleStim':
         return 'smt'
     elif version_factor == 'GatPostStimulusRuleStim':
         return 'smt'
@@ -551,11 +557,23 @@ def classification_version_balance(version_balance):
         condition_list = [['Gating+1']]
         split_ignore_columns = []
 
+    elif version_balance == 'StageGatingCenteredSensoryGatingOnly':
+
+        condition_columns = ['GatedStimulusSerialPositionCentered', 'SM_SensoryAbstractGroup']
+        condition_list = [['Gating'], ['AbstractGroup1', 'AbstractGroup2']]
+        split_ignore_columns = ['SM_SensoryAbstractGroup']
+
     elif version_balance == 'StageGatingCenteredMemoryGatingOnly':
 
         condition_columns = ['GatedStimulusSerialPositionCentered', 'SM_MemoryAbstractGroup']
         condition_list = [['Gating'], ['AbstractGroup1', 'AbstractGroup2']]
         split_ignore_columns = ['SM_MemoryAbstractGroup']
+
+    elif version_balance == 'StageGatingCenteredSensoryPostDist1Only':
+
+        condition_columns = ['GatedStimulusSerialPositionCentered', 'SM_SensoryAbstractGroup']
+        condition_list = [['Gating+1'], ['AbstractGroup1', 'AbstractGroup2']]
+        split_ignore_columns = ['SM_SensoryAbstractGroup']
 
     elif version_balance == 'StageGatingCenteredMemoryPostDist1Only':
 

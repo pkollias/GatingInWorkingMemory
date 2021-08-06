@@ -667,6 +667,7 @@ class ClassificationAnalysis(Analysis):
         area_list_str = list_param_to_str(self.version['area_list'])
         subject_str = list_param_to_str(self.version['subject'])
         return 'filter', '_'.join([area_list_str, subject_str])
+        return 'wrangle'
 
     def get_assemble_stem(self) -> Union[str, tuple]:
         area_list_str = list_param_to_str(self.version['area_list'])
@@ -683,6 +684,17 @@ class ClassificationAnalysis(Analysis):
     def get_train_test_stem(self) -> Union[str, tuple]:
         return (*self.get_pseudo_session_stem(), 'train_test', 'split_{0:s}'.format(self.version['split']))
 
+    def get_filter_session_stem(self) -> Union[str, tuple]:
+        area_list_str = list_param_to_str(self.version['area_list'])
+        subject_str = list_param_to_str(self.version['subject'])
+        return 'filter', '_'.join([area_list_str, subject_str, self.version['sess_ratio'], self.version['units_ratio']])
+
+    def get_session_stem(self) -> Union[str, tuple]:
+        return (*self.get_filter_session_stem(), 'session')
+
+    def get_train_test_session_stem(self) -> Union[str, tuple]:
+        return (*self.get_session_stem(), 'train_test')
+
 
 # ### Misc ### #
 
@@ -692,3 +704,12 @@ def list_param_to_list(list_param: str) -> list:
 
 def list_param_to_str(list_param: str) -> str:
     return ''.join(list_param_to_list(list_param))
+
+
+def timebin_interval_from_version_fr(version_fr: str) -> TimebinInterval:
+    v_fr_params = version_fr_params(version_fr)
+    t_start = v_fr_params['t_start']
+    t_end = v_fr_params['t_end']
+    timebin = v_fr_params['timebin']
+    timestep = v_fr_params['timestep']
+    return TimebinInterval(timebin, timestep, t_start, t_end)

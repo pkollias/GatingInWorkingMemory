@@ -25,32 +25,31 @@ def main():
 
     # mark units as valid based on number of events and
     units = db.tables['units']
-    valid_units_events = units.apply(lambda row: dpca.assess_unit_events(row.name), axis=1)
+    valid_units_behavioral_lists = units.apply(lambda row: dpca.assess_unit_events(row.name), axis=1)
 
-    md.np_saver(valid_units_events, target_filename)
+    md.np_saver(valid_units_behavioral_lists, target_filename)
 
 
 def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    args_factor = ['factor=GatedStimulus']
-    args_fr = ['fr=ConcatFactor2']
-    args_counts_thr = ['counts_thr=20']
-    args_fr_thr = ['fr_thr=100']
-    args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_fr_thr)))))
+    for factor, counts_thr in [('GatedStimulusPostDistMemory', '6'), ('GatedStimulusPostDistMemory', '8'),
+                               ('GatedStimulusPostDistMemory', '10'), ('GatedStimulusPostDistMemory', '12')]:
+        args_factor = ['factor={0:s}'.format(factor)]
+        args_fr = ['fr=ConcatFactor2']
+        args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
+        args_fr_thr = ['fr_thr=100']
+        args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_fr_thr)))))
 
-    args_factor = ['factor=GatingPreBool']
-    args_fr = ['fr=ConcatFactor2']
-    args_counts_thr = ['counts_thr=20']
-    args_fr_thr = ['fr_thr=100']
-    args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_fr_thr)))))
-
-    args_factor = ['factor=GatedStimulusPostDistMemory']
-    args_fr = ['fr=ConcatFactor2']
-    args_counts_thr = ['counts_thr=10']
-    args_fr_thr = ['fr_thr=100']
-    args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_fr_thr)))))
+    for counts_thr in ['10', '12', '16']:
+        for factor in ['GatPostStimulusRuleStim', 'TargPostStimulusRuleStim',
+                       'GatingPreBool', 'StimulusGating', 'StimulusGatingPreBool']:
+            args_factor = ['factor={0:s}'.format(factor)]
+            args_fr = ['fr=ConcatFactor2']
+            args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
+            args_fr_thr = ['fr_thr=100']
+            args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_fr_thr)))))
 
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():

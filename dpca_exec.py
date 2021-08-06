@@ -46,6 +46,7 @@ def main():
 
     for fn, var in zip(target_filename, [fbt, dpca_obj, X_fit, (X, X_trial, records, records_trial)]):
         md.np_saver(var, fn)
+    # fbt, dpca_obj, X_fit, (X, X_trial, records, records_trial) = [md.np_loader(fn) for fn in target_filename]
 
 
 def args_from_parse_func(parse_version):
@@ -53,53 +54,35 @@ def args_from_parse_func(parse_version):
     args_version_list = []
 
     for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
-        for subject in ['Gonzo', 'Oscar']:
-            args_factor = ['factor=GatPostStimulusRuleStim']
-            args_fr = ['fr=ConcatFactor2']
-            args_counts_thr = ['counts_thr=20']
-            args_area_list = ['area_list={0:s}'.format(area)]
-            args_subject = ['subject={0:s}'.format(subject)]
-            args_area = ['area={0:s}'.format(area)]
-            args_mode = ['mode=Full']
-            args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(1)]
-            args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list,
-                                                                 args_subject, args_area, args_mode, args_mode_seed)))))
+        for subject in ['Gonzo', 'Oscar', 'Gonzo_Oscar']:
+            for factor, counts_thr in [('GatedStimulusPostDistMemory', '6'), ('GatedStimulusPostDistMemory', '8'),
+                                       ('GatedStimulusPostDistMemory', '10'), ('GatedStimulusPostDistMemory', '12')]:
+                args_factor = ['factor={0:s}'.format(factor)]
+                args_fr = ['fr=ConcatFactor2']
+                args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
+                args_area_list = ['area_list={0:s}'.format(area_list)]
+                args_subject = ['subject={0:s}'.format(subject)]
+                args_area = ['area={0:s}'.format(area)]
+                args_mode = ['mode=Full']
+                args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(1)]
+                args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list,
+                                                                     args_subject, args_area, args_mode, args_mode_seed)))))
 
-    # for area_list in ['PFC_Stri', 'PFC']:
-    #     for area in area_list.split('_'):
-    #
-    #         args_factor = ['factor=GatedStimulus']
-    #         args_fr = ['fr=ConcatFactor2']
-    #         args_counts_thr = ['counts_thr=20']
-    #         args_area_list = ['area_list={0:s}'.format(area_list)]
-    #         args_subject = ['subject=Gonzo_Oscar']
-    #         args_area = ['area={0:s}'.format(area)]
-    #         args_mode = ['mode=Full']
-    #         args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(1)]
-    #         args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list,
-    #                                                              args_subject, args_area, args_mode, args_mode_seed)))))
-    #
-    #         args_factor = ['factor=GatingPreBool']
-    #         args_fr = ['fr=ConcatFactor2']
-    #         args_counts_thr = ['counts_thr=20']
-    #         args_area_list = ['area_list={0:s}'.format(area_list)]
-    #         args_subject = ['subject=Gonzo_Oscar']
-    #         args_area = ['area={0:s}'.format(area)]
-    #         args_mode = ['mode=Full']
-    #         args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(1)]
-    #         args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list,
-    #                                                              args_subject, args_area, args_mode, args_mode_seed)))))
-    #
-    #         args_factor = ['factor=GatedStimulusPostDistMemory']
-    #         args_fr = ['fr=ConcatFactor2']
-    #         args_counts_thr = ['counts_thr=10']
-    #         args_area_list = ['area_list={0:s}'.format(area_list)]
-    #         args_subject = ['subject=Gonzo_Oscar']
-    #         args_area = ['area={0:s}'.format(area)]
-    #         args_mode = ['mode=Full']
-    #         args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(1)]
-    #         args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list,
-    #                                                              args_subject, args_area, args_mode, args_mode_seed)))))
+    for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
+        for subject in ['Gonzo', 'Oscar', 'Gonzo_Oscar']:
+            for counts_thr in ['10', '12', '16']:
+                for factor in ['GatPostStimulusRuleStim', 'TargPostStimulusRuleStim',
+                               'GatingPreBool', 'StimulusGating', 'StimulusGatingPreBool']:
+                    args_factor = ['factor={0:s}'.format(factor)]
+                    args_fr = ['fr=ConcatFactor2']
+                    args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
+                    args_area_list = ['area_list={0:s}'.format(area_list)]
+                    args_subject = ['subject={0:s}'.format(subject)]
+                    args_area = ['area={0:s}'.format(area)]
+                    args_mode = ['mode=Full']
+                    args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(1)]
+                    args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list,
+                                                                         args_subject, args_area, args_mode, args_mode_seed)))))
 
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():

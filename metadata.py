@@ -42,7 +42,8 @@ class MetaData:
                        'physiology': {'filename': 'physiology.pkl', 'index': ['Session', 'ChanNum', 'UnitNum']},
                        'multiunits': {'filename': 'multiunits.pkl', 'index': ['Session', 'ChanNum']},
                        'activity': {'filename': 'activity.pkl', 'index': ['Session', 'ChanNum', 'UnitNum']},
-                       'conditions': {'filename': 'conditions.pkl', 'index': []}}
+                       'conditions': {'filename': 'conditions.pkl', 'index': []},
+                       'units_events': {'filename': 'units_events.pkl', 'index': []}}
     proc_imports = {'behavioral_units': {'index': ['Session', 'ChanNum', 'UnitNum', 'TrialNum', 'StageIndex']},
                     'behavioral_multiunits': {'index': ['Session', 'ChanNum', 'TrialNum', 'StageIndex']}}
 
@@ -90,7 +91,8 @@ class MetaData:
 
     def df_saver(self, table, path):
         with pickle_protocol(5):
-            table.reset_index(drop=True).to_pickle(path)
+            with open(path, 'wb') as f:
+                pickle.Pickler(f).dump(table.reset_index(drop=True))
 
     def df_loader(self, path, index):
         with pickle_protocol(5):
@@ -112,14 +114,14 @@ class MetaData:
         for k, df in df_list:
             self.df_saver(df, self.preproc_dest_path(self.preproc_imports[k]['filename']))
 
-    def np_saver(self, variable, path):
+    def np_saver(self, variable, filepath):
         with pickle_protocol(5):
-            with open(path, 'wb') as f:
+            with open(filepath, 'wb') as f:
                 pickle.Pickler(f).dump(variable)
 
-    def np_loader(self, path):
+    def np_loader(self, filepath):
         with pickle_protocol(5):
-            return pd.read_pickle(path)
+            return pd.read_pickle(filepath)
             # with open(path, 'rb') as f:
             #     return pickle.Unpickler(f).load()
     

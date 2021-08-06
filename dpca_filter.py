@@ -27,8 +27,8 @@ def main():
     # create unit selection filters
     units = db.tables['units']
     # valid units
-    valid_units_events = md.np_loader(dpca.get_path_base('valid_units', dpca.get_wrangle_stem()))
-    valid_units = valid_units_events.apply(bool)
+    valid_units_behavioral_lists = md.np_loader(dpca.get_path_base('valid_units', dpca.get_wrangle_stem()))
+    valid_units = valid_units_behavioral_lists.apply(bool)
     # single units
     single_units = units['UnitNum'].ne(0) & units['RatingCode'].ne(7)
     # area list units
@@ -41,9 +41,9 @@ def main():
     db.tables['units'] = units.loc[valid_units & single_units & area_list_units & subject_units]
 
     # create behavioral_units table
-    units_events = valid_units_events.loc[db.tables['units'].index]
+    units_behavioral_lists = valid_units_behavioral_lists.loc[db.tables['units'].index]
     behavioral_units = pd.DataFrame([(sess, channum, unitnum, trialnum, stageindex)
-                                     for (sess, channum, unitnum), events_list in units_events.iteritems()
+                                     for (sess, channum, unitnum), events_list in units_behavioral_lists.iteritems()
                                      for _, trialnum, stageindex in events_list],
                                     columns=md.proc_imports['behavioral_units']['index'])
 
@@ -54,28 +54,28 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    for area_list in ['PFC_Stri', 'PFC']:
+    for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
+        for subject in ['Gonzo', 'Oscar', 'Gonzo_Oscar']:
+            for factor, counts_thr in [('GatedStimulusPostDistMemory', '6'), ('GatedStimulusPostDistMemory', '8'),
+                                       ('GatedStimulusPostDistMemory', '10'), ('GatedStimulusPostDistMemory', '12')]:
+                args_factor = ['factor={0:s}'.format(factor)]
+                args_fr = ['fr=ConcatFactor2']
+                args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
+                args_area_list = ['area_list={0:s}'.format(area_list)]
+                args_subject = ['subject={0:s}'.format(subject)]
+                args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list, args_subject)))))
 
-        args_factor = ['factor=GatedStimulus']
-        args_fr = ['fr=ConcatFactor2']
-        args_counts_thr = ['counts_thr=20']
-        args_area_list = ['area_list={0:s}'.format(area_list)]
-        args_subject = ['subject=Gonzo_Oscar']
-        args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list, args_subject)))))
-
-        args_factor = ['factor=GatingPreBool']
-        args_fr = ['fr=ConcatFactor2']
-        args_counts_thr = ['counts_thr=20']
-        args_area_list = ['area_list={0:s}'.format(area_list)]
-        args_subject = ['subject=Gonzo_Oscar']
-        args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list, args_subject)))))
-
-        args_factor = ['factor=GatedStimulusPostDistMemory']
-        args_fr = ['fr=ConcatFactor2']
-        args_counts_thr = ['counts_thr=10']
-        args_area_list = ['area_list={0:s}'.format(area_list)]
-        args_subject = ['subject=Gonzo_Oscar']
-        args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list, args_subject)))))
+    for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
+        for subject in ['Gonzo', 'Oscar', 'Gonzo_Oscar']:
+            for counts_thr in ['10', '12', '16']:
+                for factor in ['GatPostStimulusRuleStim', 'TargPostStimulusRuleStim',
+                               'GatingPreBool', 'StimulusGating', 'StimulusGatingPreBool']:
+                    args_factor = ['factor={0:s}'.format(factor)]
+                    args_fr = ['fr=ConcatFactor2']
+                    args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
+                    args_area_list = ['area_list={0:s}'.format(area_list)]
+                    args_subject = ['subject={0:s}'.format(subject)]
+                    args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list, args_subject)))))
 
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():
