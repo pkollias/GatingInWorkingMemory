@@ -1,27 +1,17 @@
 from __future__ import annotations
 import copy
 import scipy.sparse
+import astropy
 from astropy import units as qu
 from typing import Callable
 from metadata import *
-from metadata_db import *
-from versioning import *
 
-
-
-# TODO: analysis block with list of sampling methods, units, sessions, signals, etc
-# TODO: be able to flexibly alter points, signals etc sampling methods and not just change the method
-# TODO: general connection lists with dependencies and refresh / reset methods
-# TODO: flush lists
-# TODO: exceptions and warnings for sanity checks (sizes of arrays, temporal order of intervals, etc)
 
 class SamplingMethod:
 
     def __init__(self, srate: astropy.units.quantity.Quantity=30e3*qu.Hz):
 
         self.srate = srate.to('Hz')
-        self.point_children = []
-        self.signal_children = []
 
     def stamp_from_t(self, t: astropy.units.quantity.Quantity):
 
@@ -34,13 +24,10 @@ class SamplingMethod:
     def reset_sampling(self, srate: astropy.units.quantity.Quantity):
 
         self.srate = srate.to('Hz')
-        for point in self.point_children:
-            point.refresh_sampling(self)
-        # TODO: refresh signals (resampling, tricky implementation)
 
-    def sampling_point(self, t: astropy.units.quantity.Quantity=None, stamp=None, attach=False) -> SamplingPoint:
+    def sampling_point(self, t: astropy.units.quantity.Quantity=None, stamp=None) -> SamplingPoint:
 
-        return SamplingPoint(self, t, stamp, attach)
+        return SamplingPoint(self, t, stamp)
 
     def zero(self) -> SamplingPoint:
 
@@ -54,20 +41,14 @@ class SamplingMethod:
 
         return '{0} at {1}\n{2}'.format(type(self), hex(id(self)), str(self))
 
-    # TODO: flush point_children
-
 
 
 class SamplingPoint:
 
-    def __init__(self, sampling: SamplingMethod, t: astropy.units.quantity.Quantity=None, stamp=None, attach=False):
+    def __init__(self, sampling: SamplingMethod, t: astropy.units.quantity.Quantity=None, stamp=None):
 
         self._sampling = sampling
-        self.attached = attach
-        # TODO: signal_children
 
-        if attach:
-            self._sampling.point_children.append(self)
         if t is not None and stamp is None:
             self.t = t.to('s')
             self.stamp = self._sampling.stamp_from_t(t)
@@ -81,33 +62,22 @@ class SamplingPoint:
             self.t = t.to('s')
             self.stamp = int(stamp)
 
-    def copy(self, attach=False) -> SamplingPoint:
+    def copy(self) -> SamplingPoint:
 
-        return type(self)(self._sampling, self.t, self.stamp, attach)
+        return type(self)(self._sampling, self.t, self.stamp)
 
-    def get_offset(self, sp: SamplingPoint, attach=False) -> SamplingPoint:
+    def get_offset(self, sp: SamplingPoint) -> SamplingPoint:
 
-        return type(self)(self._sampling, self.t+sp.t, self.stamp+sp.stamp, attach)
+        return type(self)(self._sampling, self.t+sp.t, self.stamp+sp.stamp)
 
     def slide_by_offset(self, sp: SamplingPoint) -> SamplingPoint:
 
         self.t = self.t + sp.t
         self.stamp = self.stamp + sp.stamp
-        # TODO: handle alignments and dependencies
-
-    def refresh_sampling(self, sampling: SamplingMethod):
-
-        self._sampling = sampling
-        if self.t is not None:
-            self.stamp = self._sampling.stamp_from_t(self.t)
-
-    def detach(self):
-
-        self._sampling.point_children.remove(self)
 
     def __str__(self):
 
-        return '{0}{1} [{2} :{3}:]'.format(('@' if self.attached else ''), str(self._sampling), self.t, self.stamp)
+        return '{0} {1} :{2}:]'.format(str(self._sampling), self.t, self.stamp)
 
     def __repr__(self):
 
@@ -121,7 +91,6 @@ class SamplingInterval:
 
         self.start = sp_start
         self.end = sp_end
-        # TODO: signal_children
 
     def copy(self) -> SamplingInterval:
 
@@ -145,7 +114,6 @@ class SamplingInterval:
         offset = resolve_to_interval(value)
         self.start.slide_by_offset(offset.start)
         self.end.slide_by_offset(offset.end)
-        # TODO: reslice dependent signal data
 
     def slice_by_index(self, slice_range: SamplingInterval) -> SamplingInterval:
 
@@ -206,14 +174,11 @@ class Signal:
 
     padding_value = np.nan
 
-    def __init__(self, session, sampling: SamplingMethod, data, interval: SamplingInterval, units: astropy.units.core.Unit=None, src_data=None, attach=False):
+    def __init__(self, session, sampling: SamplingMethod, data, interval: SamplingInterval, units: astropy.units.core.Unit=None, src_data=None):
 
         self._session = session
         self._sampling = sampling
-        self.attached = attach
 
-        if attach:
-            self._sampling.signal_children.append(self)
         self.data = data
         self.units = units
         self.interval = interval
@@ -221,35 +186,27 @@ class Signal:
         # src_data has information of original signal, could be in different sampling format or different slicing,
         # or could be a collection of signals (list or other structure)
         self.src_data = src_data
-        # TODO: list of all derived children (slices, resamples, etc)
 
-    def copy(self, attach=False) -> Signal:
+    def copy(self) -> Signal:
 
-        return type(self)(self._session, self._sampling, copy.deepcopy(self.data), self.interval.copy(), self.units, self.src_data, attach)
+        return type(self)(self._session, self._sampling, copy.deepcopy(self.data), self.interval.copy(), self.units, self.src_data)
 
-    def slice_by_index(self, slice_range: SamplingInterval, keep_src=False, attach=False) -> Signal:
+    def slice_by_index(self, slice_range: SamplingInterval, keep_src=False) -> Signal:
 
         return Signal(self._session,
                       self._sampling,
                       copy.deepcopy(self.data[slice_range.start.stamp:slice_range.end.stamp]),
                       self.interval.slice_by_index(slice_range),
                       self.units,
-                      (self.src_data if keep_src else None),
-                      attach)
+                      (self.src_data if keep_src else None))
 
     def index_of_slice(self, slice_interval: SamplingInterval) -> SamplingInterval:
 
         return self.interval.index_of_slice(slice_interval)
 
-    def slice_by_sampling_interval(self, slice_interval: SamplingInterval, keep_src=False, attach=False) -> Signal:
+    def slice_by_sampling_interval(self, slice_interval: SamplingInterval, keep_src=False) -> Signal:
 
-        return self.slice_by_index(self.index_of_slice(slice_interval), keep_src, attach)
-
-    def detach(self):
-
-        self._sampling.signal_children.remove(self)
-
-    # TODO: src data operations (Signal type), when to preserve
+        return self.slice_by_index(self.index_of_slice(slice_interval), keep_src)
 
 
 
@@ -266,9 +223,6 @@ class SignalAggregation():
         self.signal_list.append(signal)
 
 
-# TODO: STATUS: start with signal aggregations and functions on the signals (smooth, add, combine, etc)
-
-
 
 class SpikeTrain(Signal):
 
@@ -276,7 +230,7 @@ class SpikeTrain(Signal):
 
         super(SpikeTrain, self).__init__(session, sampling, data, interval, None, src_data)
 
-    def select_by_index(self, select_range: SamplingInterval, keep_src=False) -> Spike_Train:
+    def select_by_index(self, select_range: SamplingInterval, keep_src=False) -> SpikeTrain:
 
         ind_range = np.searchsorted(self.data.col, [select_range.start.stamp, select_range.end.stamp], 'left')
         data_slice_stamps = self.data.col[ind_range[0]:ind_range[1]]
@@ -322,7 +276,7 @@ class MultiSpikeTrain(SpikeTrain):
 
 class SignalSmoothing:
 
-    def __init__(self, func: Callable=signal.correlate, window: np.ndarray=MetaData.filt_win_gauss):
+    def __init__(self, func: Callable=signal.convolve, window: np.ndarray=MetaData.filt_win_gauss):
 
         self.func = func
         self.window = window
@@ -333,10 +287,52 @@ class SignalSmoothing:
 
 
 
+class TimebinInterval:
+
+    def __init__(self, timebin, timestep, t_start, t_end):
+
+        self.timebin = timebin
+        self.timestep = timestep
+        self.t_start = t_start
+        self.t_end = t_end
+
+    def num_of_bins(self):
+
+        return int(((self.t_end - self.t_start - self.timebin) / self.timestep) + 1)
+
+
+    def split_to_bins_onset(self):
+
+        timebin, timestep, t_start, t_end = self.timebin, self.timestep, self.t_start, self.t_end
+        return [int(onset)
+                for onset
+                in np.linspace(t_start, t_end - timebin, self.num_of_bins(), endpoint=True)]
+
+    def split_to_bins_offset(self):
+
+        timebin, timestep, t_start, t_end = self.timebin, self.timestep, self.t_start, self.t_end
+        return [int(offset)
+                for offset
+                in np.linspace(t_start + timebin, t_end, self.num_of_bins(), endpoint=True)]
+
+    def sub_interval(self, t_start, t_end):
+        return TimebinInterval(self.timebin, self.timestep, t_start, t_end)
+
+    def t_offset_to_ind(self, t):
+
+        return self.split_to_bins_offset().index(t)
 
 
 
-### Misc ###
+# TODO: implement later, bin, stepped timeseries
+class Timeseries:
+
+    def __init__(self):
+
+        pass
+
+
+# ### Misc ### #
 
 def resolve_to_interval(value):
 

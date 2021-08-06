@@ -15,6 +15,7 @@ def main():
     gating_label = 'Gating'
     dist_label = 'PreDist'
     stim_means_label = 'StageStimSpecialized'
+    stim_levels = [['S11'], ['S12'], ['S21'], ['S22'], ['S11', 'S12', 'S21', 'S22']]
     inter_means_label = interaction_term(gating_means_label, stim_means_label)
 
 
@@ -43,12 +44,17 @@ def main():
     timebin_fr_dict = md.np_loader(src_filename)
     FR_base = np.mean([fr[0] for fr in timebin_fr_dict.values()])
 
+    mod_ratio = lambda fr: fr / FR_base if bool(FR_base) else np.nan
+    mod_diff = lambda fr: (fr - FR_base) if bool(FR_base) else np.nan
+    mod_contrast = lambda fr: (fr - FR_base) / (fr + FR_base) if bool(fr + FR_base) else np.nan
+
 
     for version_fr in ['WindowSampleShift', 'WindowDelayShift']:
 
         if version_fr == 'WindowDelayShift':
             gating_label = gating_label + 'Delay'
             dist_label = dist_label + 'Delay'
+            stim_levels = [[stim + 'D' for stim in stim_list] for stim_list in stim_levels]
 
         unit_selectivity_index = {}
 
@@ -80,18 +86,24 @@ def main():
             means = unit_time_results[y_bin_strnum_to_str(t_start)]['results']['means']
             y_bin_str_start = y_bin_strnum_to_str(t_start)
 
-
             # Gating selectivity indices
-            FR_gating = means[gating_means_label].loc[gating_label][y_bin_str_start]
-            FR_dist = means[gating_means_label].loc[dist_label][y_bin_str_start]
-            mod_ratio = lambda fr: fr / FR_base
-            unit_selectivity_index['modulation_ratio'] = {'Gating': mod_ratio(FR_gating),
-                                                          'PreDist': mod_ratio(FR_dist),
-                                                          'GatingSelectivityIndex': mod_ratio(FR_gating - FR_dist)}
+            unit_selectivity_index['modulation_ratio'] = {}
+            unit_selectivity_index['modulation_diff'] = {}
+            for stim_i in stim_levels:
+                FR_gating = means[inter_means_label].loc[gating_label][y_bin_str_start].loc[stim_i].mean()
+                FR_dist = means[inter_means_label].loc[dist_label][y_bin_str_start].loc[stim_i].mean()
+                stim_i_str = '_'.join(stim_i)
+                unit_selectivity_index['modulation_ratio'][stim_i_str] = {'Gating': mod_ratio(FR_gating),
+                                                                      'PreDist': mod_ratio(FR_dist),
+                                                                      'GatingSelectivityIndex': mod_ratio(FR_gating - FR_dist)}
+                unit_selectivity_index['modulation_diff'][stim_i_str] = {'Gating': mod_diff(FR_gating),
+                                                                         'PreDist': mod_diff(FR_dist),
+                                                                         'GatingContrast': mod_contrast(FR_gating),
+                                                                         'PreDistContrast': mod_contrast(FR_dist)}
 
             # Stimulus selectivity indices
             unit_selectivity_index['selectivity_index'] = {}
-            for stim_fr_period in ['Overall', 'Distractor']:
+            for stim_fr_period in ['Overall', 'Distractor', 'Gating']:
 
                 # get stimulus means for gating-distractor combined
                 if stim_fr_period == 'Overall':
@@ -99,9 +111,12 @@ def main():
                 # get stimulus means for distractor period
                 elif stim_fr_period == 'Distractor':
                     FR_stim_i_series = means[inter_means_label].loc[dist_label][y_bin_str_start]
+                # get stimulus means for gating period
+                elif stim_fr_period == 'Gating':
+                    FR_stim_i_series = means[inter_means_label].loc[gating_label][y_bin_str_start]
 
-                StimulusSelectivityIndex = (FR_stim_i_series.max() - FR_stim_i_series.min()) / FR_base
-                DepthOfSelectivityIndex = (4 - (FR_stim_i_series / FR_stim_i_series.max()).sum()) / 3
+                StimulusSelectivityIndex = mod_ratio(FR_stim_i_series.max() - FR_stim_i_series.min())
+                DepthOfSelectivityIndex = (4 - (FR_stim_i_series / FR_stim_i_series.max()).sum(min_count=1)) / 3
 
                 unit_selectivity_index['selectivity_index'][stim_fr_period] = {'StimulusSelectivityIndex': StimulusSelectivityIndex,
                                                                                'DepthOfSelectivityIndex': DepthOfSelectivityIndex,

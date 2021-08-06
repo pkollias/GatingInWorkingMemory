@@ -1,176 +1,228 @@
-import copy
-from metadata import *
+from rec import TimebinInterval
+from versioning import *
+from rec_db import *
+from sklearn.preprocessing import StandardScaler
 
 class PopulationBehavioralTimeseries():
 
-    def __init__(self, shape=(0, 0, 0, 0), dim_order=['Units', 'Conditions', 'Instances', 'Timebins'],
-                 condition_levels=[], condition_labels=[], timebins={'version_fr': np.nan, 'timebin': np.nan, 'timestep': np.nan}):
+    base_columns = ['Unit', 'Event', 'Condition', 'Instance', 'Timeseries']
 
-        self.data = np.empty(shape)
-        self.base_shape = self.data.shape
-        self.dim_order = dim_order
-        self.format = 'Base'
-
-        self.unit_inds = []
-        self.condition_levels = condition_levels
+    def __init__(self, condition_labels=[], timebin_interval=TimebinInterval(0, 0, 0, 0)):
+        self.df = pd.DataFrame(columns=self.base_columns)
         self.condition_labels = condition_labels
-        self.timebins = timebins
+        self.timebin_interval = timebin_interval
 
-    def get_current_shape(self):
-        return self.data.shape
-
-    def get_base_shape(self):
-        return self.base_shape
-
-    def get_data(self):
-        return self.data
-
-    def set_data(self, data):
-        self.data = data
-        self.base_shape = self.data.shape
-
-    def set_no_base_data(self, data):
-        self.data = data
-
-    def get_dim_order(self):
-        return self.dim_order
-
-    def set_dim_order(self, dim_order):
-        self.dim_order = dim_order
+    def init_with_df(self, df):
+        pbt = PopulationBehavioralTimeseries(condition_labels=self.condition_labels, timebin_interval=self.timebin_interval)
+        pbt.df = df
+        return pbt
 
     def get_unit_inds(self):
-        return self.unit_inds
+        return list(self.df['Unit'].unique())
 
-    def set_unit_inds(self, unit_inds):
-        self.unit_inds = unit_inds
+    def get_condition_levels_1d(self):
+        return list(self.df['Condition'].unique())
 
-    def get_condition_levels(self):
-        return self.condition_levels
+    def get_condition_levels_nd(self):
+        cond_1d_list = self.get_condition_levels_1d()
+        return [tuple(np.unique(t)) for t in zip(*cond_1d_list)]
 
-    def set_condition_levels(self, condition_levels):
-        self.condition_levels = condition_levels
+    def get_condition_slice(self, condition_list):
+        return self.df.loc[self.df['Condition'].isin(condition_list)]
 
-    def get_condition_labels(self):
-        return self.condition_labels
+    def get_unit_slice(self, unit_list):
+        return self.df.loc[self.df['Unit'].isin(unit_list)]
 
-    def set_condition_labels(self, condition_labels):
+    def add_data_row(self, unit_ind, event_ind, condition, instance, timeseries, index=None):
+        row_data_df = pd.DataFrame.from_dict({index: [unit_ind, event_ind, condition, instance, timeseries]},
+                                             columns=self.base_columns,
+                                             orient='index')
+        ignore_index = index is None
+        self.df.append(row_data_df, ignore_index=ignore_index)
+
+    def add_data_rows_from_list(self, data_list):
+        row_data_df = pd.DataFrame(data_list, columns=self.base_columns)
+        self.df = self.df.append(row_data_df, ignore_index=False)
+
+    def func_instances(self, group_columns, func):
+        grouper = self.df.groupby(group_columns)
+        grouper_index = grouper.groups.keys()
+        timeseries = grouper['Timeseries'].aggregate(func)
+        events = grouper['Event'].aggregate(list)
+        df_average = pd.DataFrame({'Timeseries': timeseries,
+                                   'Event': events,
+                                   'Instance': [0 for _ in range(len(grouper_index))]},
+                                  index=grouper_index)
+        df_average.index.set_names(group_columns, inplace=True)
+        df_average.reset_index(drop=False, inplace=True)
+        return self.init_with_df(df_average)
+
+    def average_instances(self, group_columns):
+        return self.func_instances(group_columns, lambda x: list(np.mean(np.array(list(x)), axis=0)))
+
+    def std_instances(self, group_columns):
+        return self.func_instances(group_columns, lambda x: list(np.std(np.array(list(x)), axis=0)))
+
+    def se_instances(self, group_columns):
+        return self.func_instances(group_columns, lambda x: list(np.std(np.array(list(x)), axis=0) / np.sqrt(len(x))))
+
+    def crop_timeseries(self, t_start, t_end):
+        crop_start_ind = self.timebin_interval.split_to_bins_offset().index(t_start)
+        crop_end_ind = self.timebin_interval.split_to_bins_offset().index(t_end)
+        crop_slice = slice(crop_start_ind, crop_end_ind + 1)
+        self.df['Timeseries'] = self.df['Timeseries'].apply(lambda x: x[crop_slice])
+        self.timebin_interval = self.timebin_interval.sub_interval(t_start - self.timebin_interval.timebin, t_end)
+
+    def smooth_timeseries(self, smoother):
+        return self.df['Timeseries'].apply(smoother.smoothen)
+
+    def smooth_df(self, smoother):
+        smooth_timeseries = self.smooth_timeseries(smoother)
+        df_smooth = self.df.copy()
+        df_smooth['Timeseries'] = smooth_timeseries
+        return df_smooth
+
+    def unfold_conditions_df(self):
+        return pd.DataFrame(self.df['Condition'].tolist(), index=self.df.index, columns=self.condition_labels)
+
+    def to_PCA_array(self):
+        df_base = self.df
+        grouper = df_base.groupby(['Unit', 'Condition', 'Instance'])
+        num_units = df_base['Unit'].nunique()
+        num_conditions = df_base['Condition'].nunique()
+        num_instances = df_base.groupby(['Unit', 'Condition']).size().unique()[0]
+        num_timebins = self.timebin_interval.num_of_bins()
+        # order indices by groupping order unit, condition, instance
+        index_list = [index for _, group in grouper for index in group.index]
+        # create pre_pca unit, condition, instance, timebin array
+        X_preshape = (num_units, num_conditions, num_instances, num_timebins)
+        X_pre = np.array(df_base.iloc[index_list]['Timeseries'].tolist()).reshape(X_preshape)
+        # convert to pca array format
+        X_shape = (num_conditions * num_instances * num_timebins, num_units)
+        X = X_pre.transpose(1, 2, 3, 0).reshape(X_shape)
+        # unit, condition, instance information for reconstruction
+        records = df_base.iloc[index_list][['Unit', 'Condition', 'Instance']].to_records()
+        return X, records
+
+    def to_PCA_scale_array(self):
+        X, records = self.to_PCA_array()
+        X_scale = StandardScaler().fit_transform(X.transpose()).transpose()
+        return (X, X_scale), records
+
+    def to_dPCA_mean_array(self):
+        # init params
+        pbt_mean = self.average_instances(['Unit', 'Condition'])
+        df_base = pd.concat([pbt_mean.df, pbt_mean.unfold_conditions_df()], axis=1)
+        grouper = df_base.groupby(['Unit'] + pbt_mean.condition_labels + ['Instance'])
+        num_units = df_base['Unit'].nunique()
+        num_conditions = list(df_base[pbt_mean.condition_labels].nunique())
+        num_instances = df_base.groupby(['Unit', 'Condition']).size().unique()[0]
+        num_timebins = pbt_mean.timebin_interval.num_of_bins()
+        # order indices by groupping order unit, condition, instance
+        index_list = [index for _, group in grouper for index in group.index]
+        # create pre_pca unit, condition, instance, timebin array
+        X_preshape = tuple([num_units] + num_conditions + [num_instances, num_timebins])
+        X_pre = np.array(df_base.iloc[index_list]['Timeseries'].tolist()).reshape(X_preshape)
+        # convert to pca array format
+        X = X_pre.squeeze()
+        # unit, condition, instance information for reconstruction
+        records = df_base.iloc[index_list][['Unit', 'Condition', 'Instance']].to_records()
+        return X, records
+
+    def to_dPCA_mean_demean_array(self):
+        X_mean, records = self.to_dPCA_mean_array()
+        mean_shape = X_mean.shape
+        X__mean_2d = X_mean.reshape((mean_shape[0], -1))
+        X_mean_demean = StandardScaler(with_std=False).fit_transform(X__mean_2d.transpose()).transpose().reshape(mean_shape)
+        return (X_mean, X_mean_demean), records
+
+    def to_dPCA_trial_array(self):
+        # init params
+        df_base = pd.concat([self.df, self.unfold_conditions_df()], axis=1)
+        grouper = df_base.groupby(['Unit'] + self.condition_labels + ['Instance'])
+        num_units = df_base['Unit'].nunique()
+        num_conditions = list(df_base[self.condition_labels].nunique())
+        num_instances = df_base.groupby(['Unit', 'Condition']).size().unique()[0]
+        num_timebins = self.timebin_interval.num_of_bins()
+        # order indices by groupping order unit, condition, instance
+        index_list = [index for _, group in grouper for index in group.index]
+        # create pre_pca unit, condition, instance, timebin array
+        X_preshape = tuple([num_units] + num_conditions + [num_instances, num_timebins])
+        X_pre = np.array(df_base.iloc[index_list]['Timeseries'].tolist()).reshape(X_preshape)
+        # convert to pca array format
+        X_transpose_order = tuple([len(num_conditions) + 1, 0] + list(range(1, len(num_conditions) + 1)) + [len(num_conditions) + 2])
+        X = X_pre.transpose(X_transpose_order)
+        # unit, condition, instance information for reconstruction
+        records = df_base.iloc[index_list][['Unit', 'Condition', 'Instance']].to_records()
+        return X, records
+
+    def to_pseudosession_firing_rate(self, pseudoarray_inds, t_ind):
+
+        df_ordered_timeseries = self.df.loc[pseudoarray_inds.flat]['Timeseries']
+        df_t_fr = df_ordered_timeseries.apply(lambda timeseries: timeseries[t_ind])
+        X = df_t_fr.to_numpy().reshape(pseudoarray_inds.shape)
+        return X
+
+class FactorBehavioralTimeseries(PopulationBehavioralTimeseries):
+
+    base_columns = ['Factor', 'Condition', 'Instance', 'Timeseries']
+
+    def __init__(self, df, condition_labels, timebin_interval):
+        self.df = df
         self.condition_labels = condition_labels
+        self.timebin_interval = timebin_interval
 
-    def get_timebins(self):
-        return self.timebins
-
-    def set_timebins(self, version_fr, timebin, timestep):
-        self.timebins = {'version_fr': version_fr,
-                         'timebin': timebin,
-                         'timestep': timestep}
-
-    def derive_unit(self, unit_ind=np.nan):
-        return UnitBehavioralTimeseries(shape=(0,) + tuple(self.get_current_shape()[2:]), unit_ind=unit_ind, condition_levels=[])
-
-    def add_unit(self, ubt):
-        self.data = np.insert(self.data, self.get_current_shape()[0], ubt.data, axis=0)
-        self.unit_inds.append(ubt.get_unit_inds())
-        self.base_shape = self.data.shape
-        if not bool(self.get_condition_levels()):
-            self.set_condition_levels(ubt.get_condition_levels())
-
-    def base_to_PCA(self):
-        pbt_pca = copy.deepcopy(self)
-        base_shape = self.get_base_shape()
-        dim_order = self.get_dim_order()
-        pbt_pca.set_no_base_data(self.data.reshape(base_shape[0], np.product(base_shape[1:])).transpose())
-        pbt_pca.set_dim_order(['_'.join(dim_order[1:]), dim_order[0]])
-        pbt_pca.format = 'PCA'
-
-        return pbt_pca
-
-    def PCA_to_base(self):
-        pbt = copy.deepcopy(self)
-        dim_order = self.get_dim_order()
-        pbt.set_no_base_data(self.data.transpose().reshape(self.get_base_shape()))
-        pbt.set_dim_order([dim_order[-1]] + dim_order[:-1][0].split('_'))
-        pbt.format = 'Base'
-
+    def init_with_df(self, df):
+        pbt = PopulationBehavioralTimeseries(condition_labels=self.condition_labels,
+                                             timebin_interval=self.timebin_interval)
+        pbt.df = df
         return pbt
 
-    def average_instances(self):
-        pbt = copy.deepcopy(self)
-        base_shape = pbt.get_base_shape()
-        new_base_shape = (base_shape[0], base_shape[1], 1, base_shape[3])
-        pbt.data = pbt.data.mean(axis=2).reshape(new_base_shape)
-        pbt.base_shape = new_base_shape
+    def unfold_conditions_df(self):
+        return pd.DataFrame(self.df['Condition'].tolist(), index=self.df.index, columns=self.condition_labels)
 
-        return pbt
+    def average_instances(self, group_columns):
+        grouper = self.df.groupby(group_columns)
+        grouper_index = grouper.groups.keys()
+        timeseries = grouper['Timeseries'].aggregate(lambda x: list(np.mean(np.array(list(x)), axis=0)))
+        df_average = pd.DataFrame({'Timeseries': timeseries,
+                                   'Instance': [0 for _ in range(len(grouper_index))]},
+                                  index=grouper_index)
+        df_average.index.set_names(group_columns, inplace=True)
+        df_average.reset_index(drop=False, inplace=True)
+        return FactorBehavioralTimeseries(df_average, self.condition_labels, self.timebin_interval)
 
-    def conditions_unfold(self):
-        pbt_cond_nd = copy.deepcopy(self)
-        # params and structs for calculations
-        num_condition_dims = len(self.condition_labels)
-        unzipped_conditions = list(zip(*self.condition_levels))
-        condition_levels_by_dim = [list(set(dim_i_levels)) for dim_i_levels in unzipped_conditions]
-        num_condition_levels_by_dim = [len(levels) for levels in condition_levels_by_dim]
+    def init_with_df(self): pass
+    def get_unit_inds(self): pass
+    def get_unit_slice(self): pass
+    def add_data_row(self): pass
+    def add_data_rows_from_list(self): pass
+    def to_PCA_array(self): pass
+    def to_dPCA_mean_array(self): pass
+    def to_dPCA_trial_array(self): pass
 
-        # data
-        temp_data = self.data.transpose((1, 0, 2, 3))
-        if num_condition_dims > 1:
-            # initialize new data table with increased number of condition dimensions
-            pbt_cond_nd.data = np.empty(tuple(num_condition_levels_by_dim) + temp_data.shape[1:])
-            # for every compound condition
-            for condition in product(*condition_levels_by_dim):
-                # find index in old list
-                condition_1d_index = self.condition_levels.index(condition)
-                condition_2d_index = [levels.index(condition[dim_index]) for dim_index, levels in
-                                      enumerate(condition_levels_by_dim)]
-                pbt_cond_nd.data[tuple(condition_2d_index + [slice(None) for _ in range(3)])] = temp_data[
-                    condition_1d_index, ...]
-        else:
-            pbt_cond_nd.data = temp_data
+    def fbt_df_from_PCA(X_factor, records, decomp_obj, timebin_interval):
+        records_df = pd.DataFrame(records)
+        num_factors = decomp_obj.n_components_
+        num_conditions = records_df['Condition'].nunique()
+        num_instances = records_df['Instance'].nunique()
+        num_timebins = timebin_interval.num_of_bins()
+        X_factor_base = X_factor.transpose().reshape(num_factors, num_conditions, num_instances, num_timebins)
+        records_base = list(
+            product(list(range(num_factors)), list(records_df['Condition'].unique()), list(range(num_instances))))
+        records_base_df = pd.DataFrame(records_base, columns=['Factor', 'Condition', 'Instance'])
+        records_base_df['Timeseries'] = list(X_factor_base.reshape(len(records_base_df), num_timebins))
+        return records_base_df
 
-        units_dim_index = num_condition_dims
-        instances_dim_index = units_dim_index + 1
-        timebin_dim_index = units_dim_index + 2
-        pbt_cond_nd.data = pbt_cond_nd.data.transpose(tuple([units_dim_index, instances_dim_index] + list(range(num_condition_dims)) + [timebin_dim_index]))
-        # dim_order
-        pbt_cond_nd.dim_order = ['Units', 'Instances'] + ['Conditions_' + condition for condition in self.condition_labels] + ['Timebins']
-        # condition levels
-        pbt_cond_nd.condition_levels = condition_levels_by_dim
-        # base
-        pbt_cond_nd.format = 'Conditions'
-
-        return pbt_cond_nd
-
-
-class UnitBehavioralTimeseries(PopulationBehavioralTimeseries):
-
-    def __init__(self, shape=(0, 0, 0), unit_ind=np.nan, condition_levels=[]):
-        super(UnitBehavioralTimeseries, self).__init__(shape=((1,) + shape), condition_levels=condition_levels)
-        self.set_unit_inds(unit_ind)
-
-    def set_data(self, data):
-
-        self.data = data.reshape((1, ) + data.shape)
-        self.base_shape = self.data.shape
-
-    def derive_unit_condition(self, condition_levels):
-
-        return UnitConditionTimeseries(shape=(0,) + tuple(self.get_current_shape()[3:]), condition_levels=condition_levels)
-
-    def add_condition(self, uct):
-
-        self.data = np.insert(self.data, self.get_current_shape()[1], uct.data, axis=1)
-        self.condition_levels.append(uct.get_condition_levels())
-        self.base_shape = self.data.shape
-
-
-
-
-class UnitConditionTimeseries(UnitBehavioralTimeseries):
-
-    def __init__(self, shape=(0, 0), condition_levels=np.nan):
-        super(UnitConditionTimeseries, self).__init__(shape=(1,) + shape)
-        self.set_condition_levels(condition_levels)
-
-    def set_data(self, data):
-
-        self.data = data.reshape((1, 1,) + data.shape)
-        self.base_shape = self.data.shape
+    def fbt_df_from_dPCA(X_factor, records, decomp_obj, timebin_interval):
+        records_df = pd.DataFrame(records)
+        num_factors = decomp_obj.n_components
+        num_conditions = records_df['Condition'].nunique()
+        num_instances = records_df['Instance'].nunique()
+        num_timebins = timebin_interval.num_of_bins()
+        X_factor_base = X_factor.reshape(num_factors, num_conditions, num_instances, num_timebins)
+        records_base = list(
+            product(list(range(num_factors)), list(records_df['Condition'].unique()), list(range(num_instances))))
+        records_base_df = pd.DataFrame(records_base, columns=['Factor', 'Condition', 'Instance'])
+        records_base_df['Timeseries'] = list(X_factor_base.reshape(len(records_base_df), num_timebins))
+        return records_base_df

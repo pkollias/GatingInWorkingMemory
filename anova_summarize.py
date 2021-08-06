@@ -1,6 +1,7 @@
 import sys
 from rec import *
 from aov_stats import *
+from versioning import *
 
 
 def main():
@@ -19,7 +20,7 @@ def main():
     x_factors = v_aov_params['x_factors']
     selection_dict = v_aov_params['selection_dict']
 
-    v_fr_params = anova_version_fr_params(version_fr)
+    v_fr_params = version_fr_params(version_fr)
     t_start = v_fr_params['t_start']
     t_end = v_fr_params['t_end']
     timebin = v_fr_params['timebin']

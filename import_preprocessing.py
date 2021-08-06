@@ -23,8 +23,6 @@ Argument list:
 
 def main():
 
-    # TODO: make argument parsing define which tables are to be imported
-    # TODO: handle dependencies of struct imports in a way that forces all dependent imports to precede requested
     # TODO: obtain event.StageDuration from bhv files Stage structs
 
     args = sys.argv
@@ -145,7 +143,7 @@ def main():
                                        sorted_parts.Subject, sorted_parts.Date, sorted_parts.SessID))
     # remove unnecessary columns
     sorted_parts.drop(['Subject', 'Date', 'SessID'], axis=1, inplace=True)
-    # typcasting
+    # typecasting
     columns = ['Session', 'ChanNum']
     types = ['category', 'int']
     sorted_parts = sorted_parts.astype(dict(zip(columns, types)))

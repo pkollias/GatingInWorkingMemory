@@ -1,4 +1,4 @@
-from aov_format import *
+from rec_format import *
 from statsmodels.formula.api import ols
 from statsmodels.stats.anova import anova_lm
 from itertools import groupby
@@ -28,8 +28,6 @@ def omega_squared(aov):
     aov['omega_sq'] = 'NaN'
     aov['omega_sq'] = (aov[:-1]['sum_sq']-(aov[:-1]['df']*mse))/(sum(aov['sum_sq'])+mse)
     return aov
-
-# TODO: when saving omega_sq value round up to x-th digit
 
 def aov_2_shuffles(df, y, x_a, x_b, x_ab, num_shuffles=1, group_column_list=[]):
 

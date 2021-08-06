@@ -1,22 +1,18 @@
 import sys
 from rec import *
 from functools import reduce
-from aov_format import *
+from rec_format import *
 from itertools import product
+from versioning import *
 
 
 def main():
-
-    ### TODO: class for firing rate versioning (firing rates for units, interval steps, times, ...)
-    ### TODO: class for dfs and filtering
-    ### TODO: class for all steps of anova (analysis version, selections, stats, intermediate results, clusters, ...)
 
     # load analysis parameters
     args = sys.argv
     u_iloc = int(args[1])
     version_aov = args[2]
     version_fr = args[3]
-
 
     valid_thr = 15
 
@@ -27,7 +23,7 @@ def main():
     event_cnj_mask = v_aov_params['event_cnj_mask']
     group_column_list = v_aov_params['group_column_list']
 
-    v_fr_params = anova_version_fr_params(version_fr)
+    v_fr_params = version_fr_params(version_fr)
     t_start = v_fr_params['t_start']
     t_end = v_fr_params['t_end']
     timebin = v_fr_params['timebin']
@@ -95,6 +91,7 @@ def main():
     for x_i, levels_i in levels_dict.items():
         events_conditions_df[x_i].cat.set_categories(levels_i, inplace=True)
     events_conditions_df.set_index(events_index, inplace=True, drop=False)
+    events_conditions_df[selection_dict['column']].cat.set_categories(selection_dict['list'], inplace=True)
 
     # create final df by concatanating events_conditions_df and timebin_fr_df
     df = pd.concat([events_conditions_df, timebin_fr_df], join='inner', axis=1).sort_index()
@@ -102,8 +99,7 @@ def main():
     counts = df.groupby(columns_valid).size()
     # minimum number of events in table
     selection_level_combinations = list(product(*[selection_dict['list']] + list(levels_dict.values())))
-    all_combinations_in_df = not (bool(set(counts.index).difference(set(selection_level_combinations))) or
-                                  bool(set(selection_level_combinations).difference(set(counts.index))))
+    all_combinations_in_df = not bool(set(selection_level_combinations).difference(set(counts.index)))
     num_events = df.groupby(columns_valid).size().min()
     # if valid unit (all level combination values and exceeding min threshold)
     valid = all_combinations_in_df and num_events >= valid_thr

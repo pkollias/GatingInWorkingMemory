@@ -28,6 +28,13 @@ def main():
     conditions['GatingCondSpecialized'] = [None if gc is None else gc + ('Delay' if sc == md.specs['DelayOnset'] else '')
                                           for gc, sc
                                           in zip(list(conditions.GatingCondExtended), list(conditions.StageCode))]
+    conditions['GatingBoolSpecialized'] = [None if gcs is None else
+                                           np.nan if type(gcs) == float and np.isnan(gcs) else
+                                           gcs if 'Gating' in gcs else
+                                           'Dist' + ('Delay' if sc == md.specs['DelayOnset'] else '') if 'Dist' in gcs else
+                                           np.nan
+                                          for gcs, sc
+                                          in zip(list(conditions.GatingCondSpecialized), list(conditions.StageCode))]
 
     prev_trialnum = [np.nan, np.nan] + list(events['TrialNum'])[:-2]
     prev_session = [np.nan, np.nan] + list(events['Session'])[:-2]
@@ -52,13 +59,26 @@ def main():
                                        in zip(list(conditions.StageStimCategory),
                                               list(conditions.StageStimDelayCategory),
                                               list(conditions.StageCategory))]
-
     conditions['StageStimSpecialized'] = [stim_cat if stage_cat in ['CueOnset', 'StimOnset']
                                        else stim_delay_cat + 'D' if stage_cat in ['CueDelay', 'StimDelay'] else np.nan
                                        for stim_cat, stim_delay_cat, stage_cat
                                        in zip(list(conditions.StageStimCategory),
                                               list(conditions.StageStimDelayCategory),
                                               list(conditions.StageCategory))]
+    conditions['GatedStageStimSpecialized'] = [sss if gcs in ['Gating'] else np.nan
+                                               for sss, gcs
+                                               in zip(list(conditions.StageStimSpecialized),
+                                                      list(conditions.GatingCondExtended))]
+
+    nextgatingcondextended = list(conditions['GatingCondExtended'])[2:] + [np.nan, np.nan]
+    conditions['StageStimExtendedNoTarget'] = [sse if not ngc in ['Target', np.nan, 'Cue'] else np.nan
+                                               for (sse, ngc)
+                                               in zip(conditions['StageStimExtended'], nextgatingcondextended)]
+    nextstagestimextended = list(conditions['StageStimExtended'])[2:] + [np.nan, np.nan]
+    conditions['NextStageStimExtendedNoTarget'] = [nsse if not ngc in ['Target', np.nan, 'Cue'] else np.nan
+                                                   for (nsse, ngc)
+                                                   in zip(nextstagestimextended, nextgatingcondextended)]
+
 
     prev_stime = [np.nan, np.nan] + list(conditions['StageStimExtended'])[:-2]
     prev_stims = [np.nan, np.nan] + list(conditions['StageStimSpecialized'])[:-2]
@@ -100,6 +120,15 @@ def main():
                                                  for (gcs, dsp) in
                                                  zip(list(conditions['GatingCondExtended']),
                                                      list(conditions['DistractorSerialPosition']))]
+    conditions['DistractorSerialPositionCentered'] = conditions.apply(md.df_DistractorSerialPositionCentered, axis=1)
+    conditions['GatedStimulusSerialPositionCentered'] = ['Gating' + ('' if gcs == 'Gating'
+                                                                     else '+' + dspc if gcs == 'PostDist'
+                                                                     else '-' + dspc)
+                                                         if gcs in ['Gating', 'PreDist', 'PostDist']
+                                                         else np.nan
+                                                         for (gcs, dspc) in
+                                                         zip(list(conditions['GatingCondExtended']),
+                                                             list(conditions['DistractorSerialPositionCentered']))]
     conditions['GatingCondStageStimCategory'] = conditions.apply(md.df_GatingCondStageStimCategory, axis=1)
     conditions['BarStatus'] = conditions.apply(md.df_BarStatus, axis=1)
     occurrence_columns = events_index + ['StageStimSpecialized']
@@ -108,17 +137,47 @@ def main():
         occurrence_list.extend(md.df_group_EnumerateStimOccurrence(events_trial_slice))
     conditions['StimOccurrence'] = occurrence_list
 
+    conditions['PostStageStimSpecialized'] = conditions.apply(md.df_PostStageStimSpecialized, axis=1)
+    conditions['PostRuleStimCategory'] = conditions.apply(md.df_PostRuleStimCategory, axis=1)
+
+    conditions['GatPostStageStimSpecialized'] = conditions.apply(md.df_GatPostStageStimSpecialized, axis=1)
+    conditions['GatPostRuleStimCategory'] = conditions.apply(md.df_GatPostRuleStimCategory, axis=1)
+
+    conditions['GatingNullCondSpecialized'] = conditions.apply(md.df_GatingNullCondSpecialized, axis=1)
+
+    conditions['SensoryMemoryRelation'] = conditions.apply(md.df_SensoryMemoryRelation, axis=1)
+    conditions['SM_SensoryAbstractGroup'] = conditions.apply(md.df_SM_SensoryAbstractGroup, axis=1)
+    conditions['SM_MemoryAbstractGroup'] = conditions.apply(md.df_SM_MemoryAbstractGroup, axis=1)
+
+    conditions['GatedStimulusPostDistMemory'] = conditions.apply(md.df_GatedStimulusPostDistMemory, axis=1)
+
 
 
     # typecasting
-    columns = ['Catch', 'GatingCondExtended', 'GatingCondSpecialized', 'GatingCond_From_To_GatingCondExtended', 'GatingCond_From_To_GatingCondSpecialized',
-               'StageStimExtended', 'StageStimSpecialized', 'PrevStageStimExtended', 'PrevStageStimSpecialized',
+    columns = ['Catch', 'GatingCondExtended', 'GatingCondSpecialized', 'GatingBoolSpecialized',
+               'GatingCond_From_To_GatingCondExtended', 'GatingCond_From_To_GatingCondSpecialized',
+               'StageStimExtended', 'StageStimSpecialized', 'GatedStageStimSpecialized',
+               'StageStimExtendedNoTarget', 'NextStageStimExtendedNoTarget',
+               'PrevStageStimExtended', 'PrevStageStimSpecialized',
                'PostDistCategory', 'RuleCueCategory', 'RuleStimCategory', 'RuleGroup', 'PrevDistractorSpecialized',
-               'DistractorSerialPosition', 'GatedStimulusSerialPosition', 'GatingCondStageStimCategory', 'BarStatus', 'StimOccurrence']
-    types = ['category', 'category', 'category', 'category', 'category',
-             'category', 'category', 'category', 'category',
+               'DistractorSerialPosition', 'GatedStimulusSerialPosition',
+               'DistractorSerialPositionCentered', 'GatedStimulusSerialPositionCentered',
+               'GatingCondStageStimCategory', 'BarStatus', 'StimOccurrence',
+               'PostStageStimSpecialized', 'PostRuleStimCategory', 'GatPostStageStimSpecialized', 'GatPostRuleStimCategory',
+               'GatingNullCondSpecialized', 'SensoryMemoryRelation', 'SM_SensoryAbstractGroup', 'SM_MemoryAbstractGroup',
+               'GatedStimulusPostDistMemory']
+    types = ['category', 'category', 'category', 'category',
+             'category', 'category',
+             'category', 'category', 'category',
+             'category', 'category',
+             'category', 'category',
              'category', 'category', 'category', 'category', 'category',
-             'category', 'category', 'category', 'category', 'category']
+             'category', 'category',
+             'category', 'category',
+             'category', 'category', 'category',
+             'category', 'category', 'category', 'category',
+             'category', 'category', 'category', 'category',
+             'category']
     conditions = conditions.astype(dict(zip(columns, types)))
     conditions_columns = columns
     conditions = conditions[events_index + conditions_columns]
