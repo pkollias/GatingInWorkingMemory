@@ -30,7 +30,7 @@ def main():
 
     # process
     # smoothen and crop data
-    smoother = SignalSmoothing(signal.correlate, signal.windows.gaussian(9, 1.25))
+    smoother = SignalSmoothing(signal.correlate, signal.windows.gaussian(9, 1.5))
     pbt = pbt_full.init_with_df(pbt_full.smooth_df(smoother))
     pbt.crop_timeseries(-50, 1000)
     dpca.pbt = pbt

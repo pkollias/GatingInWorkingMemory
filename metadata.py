@@ -42,8 +42,7 @@ class MetaData:
                        'physiology': {'filename': 'physiology.pkl', 'index': ['Session', 'ChanNum', 'UnitNum']},
                        'multiunits': {'filename': 'multiunits.pkl', 'index': ['Session', 'ChanNum']},
                        'activity': {'filename': 'activity.pkl', 'index': ['Session', 'ChanNum', 'UnitNum']},
-                       'conditions': {'filename': 'conditions.pkl', 'index': []},
-                       'units_events': {'filename': 'units_events.pkl', 'index': []}}
+                       'conditions': {'filename': 'conditions.pkl', 'index': []}}
     proc_imports = {'behavioral_units': {'index': ['Session', 'ChanNum', 'UnitNum', 'TrialNum', 'StageIndex']},
                     'behavioral_multiunits': {'index': ['Session', 'ChanNum', 'TrialNum', 'StageIndex']}}
 

@@ -135,7 +135,7 @@ def version_fr_params(version_fr):
         timebin = t_end - t_start
         timestep = timebin
         event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
-    elif version_fr == 'WindowInterferenceClassify': #
+    elif version_fr == 'WindowInterferenceClassify':
         t_start = 300
         t_end = 600
         timebin = t_end - t_start
@@ -144,6 +144,30 @@ def version_fr_params(version_fr):
     elif version_fr == 'WindowMemoryClassify':
         t_start = 600
         t_end = 900
+        timebin = t_end - t_start
+        timestep = timebin
+        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
+    elif version_fr == '200_400':
+        t_start = 200
+        t_end = 400
+        timebin = t_end - t_start
+        timestep = timebin
+        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
+    elif version_fr == '400_600':
+        t_start = 400
+        t_end = 600
+        timebin = t_end - t_start
+        timestep = timebin
+        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
+    elif version_fr == '600_800':
+        t_start = 600
+        t_end = 800
+        timebin = t_end - t_start
+        timestep = timebin
+        event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
+    elif version_fr == '800_1000':
+        t_start = 800
+        t_end = 1000
         timebin = t_end - t_start
         timestep = timebin
         event_mask = {'column': 'StageCategory', 'wrapper': pd.Series.isin, 'arg': ['CueOnset', 'StimOnset']}
@@ -483,6 +507,11 @@ def classification_version_class(version_class):
     """ Defines variable to classify """
 
     if version_class == 'GatingPreBool':
+
+        condition_columns = ['GatingCondSpecialized']
+        condition_list = [['PreDist', 'Gating']]
+
+    elif version_class == 'GatingPreBoolGeneralized':
 
         condition_columns = ['GatingCondSpecialized']
         condition_list = [['PreDist', 'Gating']]

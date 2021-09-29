@@ -43,7 +43,7 @@ def main():
     n_t = pbt.timebin_interval.num_of_bins()
 
     score = np.empty((n_t, n_t, len(train_test)))
-    estimator_list = []
+    # estimator_list = []
     estimator_timeseries = ObjectTimeseries(pbt.timebin_interval)
     # for every timepoint build a training set of classifiers
     for t_train_ind, t_train_i in enumerate(t):
@@ -56,7 +56,7 @@ def main():
             y_train = y[train_inds]
             model = LinearDiscriminantAnalysis(solver=solver, shrinkage=shrinkage)
             model.fit(X_train, y_train)
-            estimator_list.append(model)
+            # estimator_list.append(model)
 
             # test against for classification score against all other timepoints
             for t_test_ind, t_test_i in enumerate(t):
@@ -71,15 +71,31 @@ def main():
     cv_score = np.mean(score, axis=2)
     md.np_saver(cv_score, target_filename)
 
-    estimator_timeseries.set_series(estimator_list)
-    md.np_saver(estimator_timeseries, classifier.get_path_base('estimator', classifier.get_train_test_stem()))
+    # estimator_timeseries.set_series(estimator_list)
+    # md.np_saver(estimator_timeseries, classifier.get_path_base('estimator', classifier.get_train_test_stem()))
 
 
 def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-
+    for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
+            args_class = ['class=GatingPreBoolGeneralized']
+            args_balance = ['balance=Stimulus']
+            args_fr = ['fr=ConcatFactor2']
+            args_counts_thr = ['counts_thr={0:s}'.format(counts_thr) for counts_thr in ['12', '15']]
+            args_area_list = ['area_list={0:s}'.format(area_list)]
+            args_subject = ['subject=Gonzo_Oscar']
+            args_area = ['area={0:s}'.format(area)]
+            args_mode = ['mode=Normal']
+            args_mode_seed = ['mode_seed=0']
+            # args_mode_seed = ['mode_seed={0:s}'.format(mode_seed) for mode_seed in [str(ms) for ms in range(10)]]
+            args_pseudo_seed = ['pseudo_seed={0:s}'.format(pseudo_seed) for pseudo_seed in [str(ps) for ps in range(10)]]
+            args_split = ['split={0:s}'.format(split) for split in ['StratifiedStim', 'OneStimTest', 'OneStimTrain', 'WithinGroupTransfer', 'AcrossGroupTransfer']]
+            args_split_ind = ['split_ind=0']
+            args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+                                                                 args_area_list, args_subject, args_area, args_mode,
+                                                                 args_mode_seed, args_pseudo_seed, args_split, args_split_ind)))))
 
     # for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri')]:
     #     for session in range(42):

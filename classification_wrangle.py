@@ -35,23 +35,31 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    args_class = ['class=GatingPreBool']
+    args_class = ['class=GatingPreBoolGeneralized']
     args_balance = ['balance=Stimulus']
-    args_fr = ['fr=WindowGatingClassify']
-    args_counts_thr = ['counts_thr=6', 'counts_thr=9', 'counts_thr=15']
+    args_fr = ['fr=ConcatFactor2']
+    args_counts_thr = ['counts_thr=12', 'counts_thr=15']
     args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
 
-    args_class = ['class=GatedStimulus']
-    args_balance = ['balance=StageGatingCenteredSensoryGatingOnly', 'balance=StageGatingCenteredSensoryPostDist1Only']
-    args_fr = ['fr=WindowMemoryClassify', 'fr=WindowInterferenceClassify']
-    args_counts_thr = ['counts_thr=6', 'counts_thr=9', 'counts_thr=15']
-    args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
-
-    args_class = ['class=Stimulus']
-    args_balance = ['balance=StageGatingCenteredMemoryPostDist1Only']
-    args_fr = ['fr=WindowMemoryClassify', 'fr=WindowInterferenceClassify']
-    args_counts_thr = ['counts_thr=6', 'counts_thr=9', 'counts_thr=15']
-    args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
+    # args_version_list = []
+    #
+    # args_class = ['class=GatingPreBool']
+    # args_balance = ['balance=Stimulus']
+    # args_fr = ['fr={0:s}'.format(version_fr) for version_fr in ['200_400', '400_600', '600_800', '800_1000']]
+    # args_counts_thr = ['counts_thr=12', 'counts_thr=15']
+    # args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
+    #
+    # args_class = ['class=GatedStimulus']
+    # args_balance = ['balance=StageGatingCenteredSensoryGatingOnly', 'balance=StageGatingCenteredSensoryPostDist1Only']
+    # args_fr = ['fr={0:s}'.format(version_fr) for version_fr in ['200_400', '400_600', '600_800', '800_1000']]
+    # args_counts_thr = ['counts_thr=12', 'counts_thr=15']
+    # args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
+    #
+    # args_class = ['class=Stimulus']
+    # args_balance = ['balance=StageGatingCenteredMemoryPostDist1Only']
+    # args_fr = ['fr={0:s}'.format(version_fr) for version_fr in ['200_400', '400_600', '600_800', '800_1000']]
+    # args_counts_thr = ['counts_thr=12', 'counts_thr=15']
+    # args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
 
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():

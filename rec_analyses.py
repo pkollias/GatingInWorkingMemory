@@ -113,6 +113,68 @@ class TableOperator:
             return pd.Data.DataFrame([], columns=self.df.columns)
 
 
+class Anova(Analysis):
+
+    def __init__(self, db: DataBase, version: dict) -> None:
+        self.db = db
+        self.version = version
+        self.physiology_dict = None
+
+    def load_physiology_dict(self) -> None:
+        cropped_fname = self.get_path_base('physiology_dict_cropped', self.get_summary_consolidate_stem(cluster_corrected=True))
+        uncropped_fname = self.get_path_base('physiology_dict', self.get_summary_consolidate_stem(cluster_corrected=True))
+        if path.exists(cropped_fname):
+            self.physiology_dict = self.db.md.np_loader(cropped_fname)
+        else:
+            self.physiology_dict = self.db.md.np_loader(uncropped_fname)
+
+    def get_all_units(self, selection: str, x_factor: str) -> list:
+        if not bool(self.physiology_dict):
+            self.load_physiology_dict()
+        return [unit_ind for unit_ind, unit_entry in self.physiology_dict[selection].items()
+                if unit_entry[x_factor]['valid']]
+
+    def get_selective_units(self, selection: str, x_factor: str) -> list:
+        return [unit_ind for unit_ind, unit_entry in self.physiology_dict[selection].items()
+                if unit_entry[x_factor]['valid'] and bool(unit_entry[x_factor]['clusters'])]
+
+    def get_unit_time_selectivity(self, selection: str, x_factor: str, timebin_interval: TimebinInterval, filtered_inds: list=None) -> np.ndarray:
+        # init
+        if not bool(self.physiology_dict):
+            self.load_physiology_dict()
+        if not filtered_inds:
+            filtered_inds = self.physiology_dict[selection].keys()
+
+        tb_keys = timebin_interval.split_to_bins_onset()
+        selectivity_array = np.zeros((len(filtered_inds), len(tb_keys)))
+        for unit_ii, unit_ind, in enumerate(filtered_inds):
+            physiology_entry = self.physiology_dict[selection][unit_ind]
+            if not physiology_entry[x_factor]['valid']:
+                selectivity_array[unit_ii, :] = np.nan
+            else:
+                selectivity_array[unit_ii, [tb_keys.index(el) for cl in physiology_entry[x_factor]['clusters'] for el in cl]] = 1
+
+        return selectivity_array
+
+    # IO
+    def get_path_base(self, filename, stem='') -> str:
+        version_fr = self.version['fr']
+        version_aov = self.version['aov']
+        v_fr_params = version_fr_params(version_fr)
+        if type(stem) == str:
+            stem_path = stem
+        elif type(stem) == tuple:
+            stem_path = path.join(*stem)
+        return MetaData().proc_dest_path(path.join('BehavioralUnits', 'Anova', version_aov,
+                                                   behunit_params_str(self.version['fr'], v_fr_params['timebin'], v_fr_params['timestep'],
+                                                                      v_fr_params['t_start'], v_fr_params['t_end']),
+                                                   stem_path),
+                                         '{0:s}.pkl'.format(filename))
+
+    def get_summary_consolidate_stem(self, cluster_corrected: bool) -> Union[str, tuple]:
+        return 'consolidate' if cluster_corrected else 'summarize'
+
+
 class BehavioralUnitFiringRate(Analysis):
 
     def __init__(self, db: DataBase, version: dict, unit_id: Union[int, tuple]=None) -> None:
@@ -351,7 +413,6 @@ class PseudoPopulationBehavioralTimeseries(PopulationBehavioralTimeseries):
     def to_dPCA_mean_array(self): pass
     def to_dPCA_mean_demean_array(self): pass
     def to_dPCA_trial_array(self): pass
-
 
 
 class FactorBehavioralTimeseries(PopulationBehavioralTimeseries):

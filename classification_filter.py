@@ -55,18 +55,29 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    for class_i, balance in [('Stimulus', 'StageGatingPrePostMemory'), ('Stimulus', 'StageGatingCenteredMemory'),
-                             ('GatedStimulus', 'StageGatingPrePostSensory'), ('GatedStimulus', 'StageGatingCenteredSensory')]:
-        for counts_thr in ['12']:
-            for area_list in ['PFC', 'Stri', 'IT']:
-                args_class = ['class={0:s}'.format(class_i)]
-                args_balance = ['balance={0:s}'.format(balance)]
-                args_fr = ['fr=ConcatFactor2']
-                args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
-                args_area_list = ['area_list={0:s}'.format(area_list)]
-                args_subject = ['subject=Gonzo_Oscar']
-                args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
-                                                                     args_area_list, args_subject)))))
+    args_class = ['class=GatingPreBoolGeneralized']
+    args_balance = ['balance=Stimulus']
+    args_fr = ['fr=ConcatFactor2']
+    args_counts_thr = ['counts_thr={0:s}'.format(counts_thr) for counts_thr in ['12', '15']]
+    args_area_list = ['area_list={0:s}'.format(area_list) for area_list in ['PFC', 'Stri', 'IT']]
+    args_subject = ['subject=Gonzo_Oscar']
+    args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+                                                         args_area_list, args_subject)))))
+
+    # args_version_list = []
+    #
+    # for class_i, balance in [('Stimulus', 'StageGatingPrePostMemory'), ('Stimulus', 'StageGatingCenteredMemory'),
+    #                          ('GatedStimulus', 'StageGatingPrePostSensory'), ('GatedStimulus', 'StageGatingCenteredSensory')]:
+    #     for counts_thr in ['12']:
+    #         for area_list in ['PFC', 'Stri', 'IT']:
+    #             args_class = ['class={0:s}'.format(class_i)]
+    #             args_balance = ['balance={0:s}'.format(balance)]
+    #             args_fr = ['fr=ConcatFactor2']
+    #             args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
+    #             args_area_list = ['area_list={0:s}'.format(area_list)]
+    #             args_subject = ['subject=Gonzo_Oscar']
+    #             args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+    #                                                                  args_area_list, args_subject)))))
 
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():

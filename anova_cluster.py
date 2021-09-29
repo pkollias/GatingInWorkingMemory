@@ -6,15 +6,17 @@ from versioning import *
 
 def main():
 
-    args = sys.argv
-    u_iloc = int(args[1])
-    version_aov = args[2]
-    selection = args[3]
-    shuffles = int(args[4])
-    version_fr = args[5]
+    args_version = sys.argv[1:]
+    # args_version = ['job_id=0', 'overwrite=True']
+    version = job_scheduler(args_version, args_from_parse_func)
 
+    u_iloc = int(version['u_iloc'])
+    version_aov = version['aov']
+    selection = version['selection']
+    shuffles = int(version['shuffles'])
+    version_fr = version['fr']
 
-    omega_percentile = 95
+    omega_percentile = 85
     cluster_percentile = 95
 
     # version parameters
@@ -89,8 +91,25 @@ def main():
                                           'cluster_threshold': cluster_threshold,
                                           'clusters': significant_shuffle_clusters}
 
-
     md.np_saver(unit_time_cluster_results, target_filename)
+
+
+def args_from_parse_func(parse_version):
+
+    args_version_list = []
+
+    args_u_iloc = ['u_iloc={0:d}'.format(u_iloc) for u_iloc in range(2436)]
+    args_aov = ['aov={0:s}'.format(aov) for aov in ['GatedStimulus', 'PresentedStimulus', 'GatedGroup']]
+    args_selection = ['selection={0:s}'.format(selection) for selection in ['Cue', 'PreDist', 'Gating', 'PostDist', 'Target']]
+    args_shuffles = ['shuffles=2000']
+    args_fr = ['fr=ConcatFactor']
+    args_version_list.extend(list(map(list, list(product(args_u_iloc, args_aov, args_selection, args_shuffles, args_fr)))))
+
+    args_version_from_job = args_version_list[int(parse_version['job_id'])]
+    if 'overwrite' in parse_version.keys():
+        args_version_from_job.append('overwrite={0:s}'.format(parse_version['overwrite']))
+
+    return args_version_from_job
 
 
 main()

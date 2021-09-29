@@ -11,7 +11,7 @@ def main():
     # args_version = ['class_list=Stimulus_GatedStimulus', 'balance_list=StageGatingPrePost_StageGatingPrePost',
     #                 'fr=ConcatFactor2', 'counts_thr=15', 'area_list=PFC_Stri', 'subject=Gonzo_Oscar', 'area=PFC',
     #                 'mode=Normal', 'mode_seed=0', 'pseudo_seed=0', 'split=StratifiedStim',
-    #                 'classifier_ind=0_0', 'split_split_ind=0_0']
+    #                 'classifier_ind=0_0', 'split_split_ind=0_0', 'shuffle=0']
     # args_version = ['job_id=0', 'overwrite=True']
 
     # load analysis parameters
@@ -43,6 +43,11 @@ def main():
     train_key = list(train_dict.keys())[split_split_ind[0]]
     train = train_dict[train_key]
 
+    # if random permutation of labels then shuffle with seed
+    if int(version['shuffle']):
+        np.random.seed(int(version['shuffle']))
+        np.random.shuffle(y_train_test_train)
+
     # get testing classifier
     class_test = classifier_list[classifier_ind[1]]
     db_test, md_test = class_test.db, class_test.db.md
@@ -56,7 +61,8 @@ def main():
     stem = (*classifier_list[0].get_train_test_stem(),
             'intermediate',
             '_'.join([class_train.version['class'], train_key, class_test.version['class'], test_key]))
-    target_filename = classifier_list[0].get_path_base('cv_score', stem, cross=True)
+    fname = 'cv_score' if not int(version['shuffle']) else 'cv_score_{0:04d}'.format(int(version['shuffle']))
+    target_filename = classifier_list[0].get_path_base(fname, stem, cross=True)
     print(target_filename, file=sys.stdout)
     if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
         exit()
@@ -101,25 +107,49 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    for args_class_list, args_balance_list in [(['class_list=Stimulus_GatedStimulus'], ['balance_list=StageGatingPrePostMemory_StageGatingPrePostSensory'])]:
-        for counts_thr in ['12']:  # ['15', '12', '9']:
-            for area_list in ['PFC', 'Stri', 'IT']:  # ['PFC', 'Stri', 'IT']:
-                for area in area_list.split('_'):
-                    args_fr = ['fr=ConcatFactor2']
-                    args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
-                    args_area_list = ['area_list={0:s}'.format(area_list)]
-                    args_subject = ['subject=Gonzo_Oscar']
-                    args_area = ['area={0:s}'.format(area)]
-                    args_mode = ['mode=Normal']
-                    args_mode_seed = ['mode_seed=0']
-                    args_pseudo_seed = ['pseudo_seed={0:d}'.format(ps_i) for ps_i in range(5)]
-                    args_split = ['split=StratifiedBalanceSplit']  # ['split=StratifiedBalanceSplit', 'split=StratifiedBalanceSplit_StimHalf']
-                    args_classifier_ind = ['classifier_ind={0:d}_{1:d}'.format(*t) for t in list(product(range(2), range(2)))]
-                    args_split_split_ind = ['split_split_ind={0:d}_{1:d}'.format(*t) for t in list(product(range(3), range(3)))]
-                    args_version_list.extend(list(map(list, list(product(args_class_list, args_balance_list, args_fr, args_counts_thr,
-                                                                         args_area_list, args_subject, args_area,
-                                                                         args_mode, args_mode_seed, args_split,
-                                                                         args_classifier_ind, args_split_split_ind, args_pseudo_seed)))))
+    for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
+        args_class = ['class=GatingPreBoolGeneralized']
+        args_balance = ['balance=Stimulus']
+        args_fr = ['fr=ConcatFactor2']
+        args_counts_thr = ['counts_thr={0:s}'.format(counts_thr) for counts_thr in ['12', '15']]
+        args_area_list = ['area_list={0:s}'.format(area_list)]
+        args_subject = ['subject=Gonzo_Oscar']
+        args_area = ['area={0:s}'.format(area)]
+        args_mode = ['mode=Normal']
+        args_mode_seed = ['mode_seed=0']
+        # args_mode_seed = ['mode_seed={0:s}'.format(mode_seed) for mode_seed in [str(ms) for ms in range(10)]]
+        args_pseudo_seed = ['pseudo_seed={0:s}'.format(pseudo_seed) for pseudo_seed in [str(ps) for ps in range(10)]]
+        args_split = ['split={0:s}'.format(split) for split in ['StratifiedStim', 'OneStimTest', 'OneStimTrain', 'WithinGroupTransfer', 'AcrossGroupTransfer']]
+        args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+                                                             args_area_list, args_subject, args_area, args_mode,
+                                                             args_mode_seed, args_pseudo_seed, args_split)))))
+
+    # args_version_list = []
+    #
+    # for args_class_list, args_balance_list in [(['class_list=Stimulus_GatedStimulus'], ['balance_list=StageGatingPrePostMemory_StageGatingPrePostSensory'])]:
+    #     for counts_thr in ['12']:  # ['15', '12', '9']:
+    #         for clasiifier_ind in product(range(2), range(2)):
+    #             for split_split_ind in product(range(3), range(3)):
+    #                 for shuffle in range(0, 51):
+    #                     for area_list in ['PFC', 'Stri', 'IT']:
+    #                         for area in area_list.split('_'):
+    #                             args_fr = ['fr=ConcatFactor2']
+    #                             args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
+    #                             args_area_list = ['area_list={0:s}'.format(area_list)]
+    #                             args_subject = ['subject=Gonzo_Oscar']
+    #                             args_area = ['area={0:s}'.format(area)]
+    #                             args_mode = ['mode=Normal']
+    #                             args_mode_seed = ['mode_seed=0']
+    #                             args_pseudo_seed = ['pseudo_seed=0']
+    #                             args_split = ['split=StratifiedBalanceSplit']  # ['split=StratifiedBalanceSplit', 'split=StratifiedBalanceSplit_StimHalf']
+    #                             args_classifier_ind = ['classifier_ind={0:d}_{1:d}'.format(*clasiifier_ind)]
+    #                             args_split_split_ind = ['split_split_ind={0:d}_{1:d}'.format(*split_split_ind)]
+    #                             args_shuffle = ['shuffle={0:02}'.format(shuffle)]
+    #                             args_version_list.extend(list(map(list, list(product(args_class_list, args_balance_list, args_fr, args_counts_thr,
+    #                                                                                  args_area_list, args_subject, args_area,
+    #                                                                                  args_mode, args_mode_seed, args_split,
+    #                                                                                  args_classifier_ind, args_split_split_ind,
+    #                                                                                  args_pseudo_seed, args_shuffle)))))
 
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():

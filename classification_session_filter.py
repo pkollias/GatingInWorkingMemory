@@ -69,40 +69,21 @@ def args_from_parse_func(parse_version):
     args_version_list = []
 
     for session in range(42):
-        args_class = ['class=GatingPreBool']
-        args_balance = ['balance=Stimulus']
-        args_fr = ['fr=WindowGatingClassify']
-        args_counts_thr = ['counts_thr=6', 'counts_thr=9', 'counts_thr=15']
-        args_area_list = ['area_list=PFC', 'area_list=Stri']
-        args_subject = ['subject={0:d}'.format(session)]
-        args_sess_ratio = ['sess_ratio={0:s}'.format(ratio) for ratio in ['0', '0.25', '0.5', '0.75', '0.9']]
-        args_units_ratio = ['units_ratio={0:s}'.format(ratio) for ratio in ['0', '0.5', '0.6', '0.7', '0.8', '0.9']]
-        args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
-                                                             args_area_list, args_subject, args_sess_ratio, args_units_ratio)))))
-
-    for session in range(42):
-        args_class = ['class=GatedStimulus']
-        args_balance = ['balance=StageGatingCenteredSensoryGatingOnly', 'balance=StageGatingCenteredSensoryPostDist1Only']
-        args_fr = ['fr=WindowMemoryClassify', 'fr=WindowInterferenceClassify']
-        args_counts_thr = ['counts_thr=6', 'counts_thr=9', 'counts_thr=15']
-        args_area_list = ['area_list=PFC']
-        args_subject = ['subject={0:d}'.format(session)]
-        args_sess_ratio = ['sess_ratio={0:s}'.format(ratio) for ratio in ['0', '0.25', '0.5', '0.75', '0.9']]
-        args_units_ratio = ['units_ratio={0:s}'.format(ratio) for ratio in ['0', '0.5', '0.6', '0.7', '0.8', '0.9']]
-        args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
-                                                             args_area_list, args_subject, args_sess_ratio, args_units_ratio)))))
-
-    for session in range(42):
-        args_class = ['class=Stimulus']
-        args_balance = ['balance=StageGatingCenteredMemoryPostDist1Only']
-        args_fr = ['fr=WindowMemoryClassify', 'fr=WindowInterferenceClassify']
-        args_counts_thr = ['counts_thr=6', 'counts_thr=9', 'counts_thr=15']
-        args_area_list = ['area_list=PFC']
-        args_subject = ['subject={0:d}'.format(session)]
-        args_sess_ratio = ['sess_ratio={0:s}'.format(ratio) for ratio in ['0', '0.25', '0.5', '0.75', '0.9']]
-        args_units_ratio = ['units_ratio={0:s}'.format(ratio) for ratio in ['0', '0.5', '0.6', '0.7', '0.8', '0.9']]
-        args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
-                                                             args_area_list, args_subject, args_sess_ratio, args_units_ratio)))))
+        for class_arg, balance, area_list in [('GatingPreBool', 'Stimulus', 'PFC'),
+                                              ('GatingPreBool', 'Stimulus', 'Stri'),
+                                              ('GatedStimulus', 'StageGatingCenteredSensoryGatingOnly', 'PFC'),
+                                              ('GatedStimulus', 'StageGatingCenteredSensoryPostDist1Only', 'PFC'),
+                                              ('Stimulus', 'StageGatingCenteredMemoryPostDist1Only', 'PFC')]:
+            args_class = ['class={0:s}'.format(class_arg)]
+            args_balance = ['balance={0:s}'.format(balance)]
+            args_fr = ['fr={0:s}'.format(version_fr) for version_fr in ['200_400', '400_600', '600_800', '800_1000']]
+            args_counts_thr = ['counts_thr=12', 'counts_thr=15']
+            args_area_list = ['area_list={0:s}'.format(area_list)]
+            args_subject = ['subject={0:d}'.format(session)]
+            args_sess_ratio = ['sess_ratio={0:s}'.format(ratio) for ratio in ['0.75']]
+            args_units_ratio = ['units_ratio={0:s}'.format(ratio) for ratio in ['0.6']]
+            args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+                                                                 args_area_list, args_subject, args_sess_ratio, args_units_ratio)))))
 
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():
