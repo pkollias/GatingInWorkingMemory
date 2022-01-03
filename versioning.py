@@ -381,6 +381,12 @@ def factor_generate_conditions(version_factor):
         condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['PreDist', 'Gating', 'PostDist', 'Target']))
         balance_columns = []
 
+    elif version_factor == 'StimulusGatingNoTarget':
+
+        condition_columns = ['StageStimSpecialized', 'GatingCondSpecialized']
+        condition_list = list(product(['S11', 'S12', 'S21', 'S22'], ['PreDist', 'Gating', 'PostDist']))
+        balance_columns = []
+
     elif version_factor == 'StimulusGatingBool':
 
         condition_columns = ['StageStimSpecialized', 'GatingBoolSpecialized']
@@ -475,6 +481,8 @@ def factor_dpca_labels_mapping(version_factor):
         return 'smt'
     elif version_factor == 'GatPostStimulusRuleStim':
         return 'smt'
+    elif version_factor == 'StimulusGatingNoTarget':
+        return 'sgt'
     elif version_factor == 'StimulusGatingBool':
         return 'sgt'
     elif version_factor == 'StimulusGatingPreBool':
@@ -516,6 +524,11 @@ def classification_version_class(version_class):
         condition_columns = ['GatingCondSpecialized']
         condition_list = [['PreDist', 'Gating']]
 
+    elif version_class == 'GatingPreBoolGeneralizedCue':
+
+        condition_columns = ['GatingCondSpecialized']
+        condition_list = [['Cue']]
+
     elif version_class == 'Stimulus':
 
         condition_columns = ['StageStimSpecialized']
@@ -532,10 +545,22 @@ def classification_version_class(version_class):
 
 def classification_version_balance(version_balance):
 
+    if version_balance == 'None':
+
+        condition_columns = ['Catch']
+        condition_list = [['All']]
+        split_ignore_columns = []
+
     if version_balance == 'Stimulus':
 
         condition_columns = ['StageStimSpecialized']
         condition_list = [['S11', 'S12', 'S21', 'S22']]
+        split_ignore_columns = []
+
+    if version_balance == 'Cue':
+
+        condition_columns = ['StageStimSpecialized']
+        condition_list = [['C11', 'C12', 'C21', 'C22']]
         split_ignore_columns = []
 
     elif version_balance == 'StageGatingPrePost':

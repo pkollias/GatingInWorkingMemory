@@ -84,26 +84,27 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
-        for subject in ['Gonzo', 'Oscar', 'Gonzo_Oscar']:
-            for factor, counts_thr in [('GatedStimulusPostDistMemory', '6'), ('GatedStimulusPostDistMemory', '8'),
-                                       ('GatedStimulusPostDistMemory', '10'), ('GatedStimulusPostDistMemory', '12')]:
-                args_factor = ['factor={0:s}'.format(factor)]
-                args_fr = ['fr=ConcatFactor2']
-                args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
-                args_area_list = ['area_list={0:s}'.format(area_list)]
-                args_subject = ['subject={0:s}'.format(subject)]
-                args_area = ['area={0:s}'.format(area)]
-                args_mode = ['mode=Full']
-                args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(1)]
-                args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list,
-                                                                     args_subject, args_area, args_mode, args_mode_seed)))))
+    # for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
+    #     for subject in ['Gonzo', 'Oscar', 'Gonzo_Oscar']:
+    #         for factor, counts_thr in [('GatedStimulusPostDistMemory', '6'), ('GatedStimulusPostDistMemory', '8'),
+    #                                    ('GatedStimulusPostDistMemory', '10'), ('GatedStimulusPostDistMemory', '12')]:
+    #             args_factor = ['factor={0:s}'.format(factor)]
+    #             args_fr = ['fr=ConcatFactor2']
+    #             args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
+    #             args_area_list = ['area_list={0:s}'.format(area_list)]
+    #             args_subject = ['subject={0:s}'.format(subject)]
+    #             args_area = ['area={0:s}'.format(area)]
+    #             args_mode = ['mode=Full']
+    #             args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(1)]
+    #             args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list,
+    #                                                                  args_subject, args_area, args_mode, args_mode_seed)))))
 
     for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
         for subject in ['Gonzo', 'Oscar', 'Gonzo_Oscar']:
-            for counts_thr in ['10', '12', '16']:
-                for factor in ['GatPostStimulusRuleStim', 'TargPostStimulusRuleStim',
-                               'GatingPreBool', 'StimulusGating', 'StimulusGatingPreBool']:
+            for counts_thr in ['10', '12']:
+                # for factor in ['GatPostStimulusRuleStim', 'TargPostStimulusRuleStim',
+                #                'GatingPreBool', 'StimulusGating', 'StimulusGatingPreBool']:
+                for factor in ['StimulusGatingNoTarget']:
                     args_factor = ['factor={0:s}'.format(factor)]
                     args_fr = ['fr=ConcatFactor2']
                     args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
@@ -111,7 +112,7 @@ def args_from_parse_func(parse_version):
                     args_subject = ['subject={0:s}'.format(subject)]
                     args_area = ['area={0:s}'.format(area)]
                     args_mode = ['mode=Full']
-                    args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(1)]
+                    args_mode_seed = ['mode_seed={0:d}'.format(ii) for ii in range(20)]
                     args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_area_list,
                                                                          args_subject, args_area, args_mode, args_mode_seed)))))
 

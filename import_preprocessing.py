@@ -48,7 +48,7 @@ def main():
     trials['Prev'] = trials['Prev'].fillna(-1).astype('int64')
     trials.rename({'Index': 'TrialIndex', 'Prev': 'TrialPrevIndex', 'Next': 'TrialNextIndex'}, inplace=True)
     trials['Response'] = trials['Response'].fillna(-1)
-    trials['RuleCueCategory'] = 'S' + trials['RuleGroup'].astype(str) + trials['RuleCue'].astype(str)
+    trials['RuleCueCategory'] = 'C' + trials['RuleGroup'].astype(str) + trials['RuleCue'].astype(str)
     trials['RuleStimCategory'] = 'S' + trials['RuleGroup'].astype(str) + trials['RuleStim'].astype(str)
     # typecasting
     columns = ['Session', 'Cue', 'Stim', 'RuleGroup', 'RuleCue', 'RuleStim', 'StopCondition', 'Response', 'TargetStim', 'RuleCueCategory', 'RuleStimCategory']

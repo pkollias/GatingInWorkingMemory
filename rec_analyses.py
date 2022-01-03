@@ -120,12 +120,14 @@ class Anova(Analysis):
         self.version = version
         self.physiology_dict = None
 
-    def load_physiology_dict(self) -> None:
+    def load_physiology_dict(self, cropped=True) -> None:
         cropped_fname = self.get_path_base('physiology_dict_cropped', self.get_summary_consolidate_stem(cluster_corrected=True))
         uncropped_fname = self.get_path_base('physiology_dict', self.get_summary_consolidate_stem(cluster_corrected=True))
-        if path.exists(cropped_fname):
+        if path.exists(cropped_fname) and cropped:
+            print(cropped_fname)
             self.physiology_dict = self.db.md.np_loader(cropped_fname)
         else:
+            print(uncropped_fname)
             self.physiology_dict = self.db.md.np_loader(uncropped_fname)
 
     def get_all_units(self, selection: str, x_factor: str) -> list:

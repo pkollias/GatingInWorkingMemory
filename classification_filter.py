@@ -55,10 +55,10 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    args_class = ['class=GatingPreBoolGeneralized']
-    args_balance = ['balance=Stimulus']
+    args_class = ['class=GatingPreBoolGeneralizedCue']
+    args_balance = ['balance=Cue']
     args_fr = ['fr=ConcatFactor2']
-    args_counts_thr = ['counts_thr={0:s}'.format(counts_thr) for counts_thr in ['12', '15']]
+    args_counts_thr = ['counts_thr={0:s}'.format(counts_thr) for counts_thr in ['1']]
     args_area_list = ['area_list={0:s}'.format(area_list) for area_list in ['PFC', 'Stri', 'IT']]
     args_subject = ['subject=Gonzo_Oscar']
     args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,

@@ -7,9 +7,13 @@ from matplotlib.patches import Wedge
 from operator import itemgetter
 import matplotlib.animation as animation
 
+# args_version = ['factor=StimulusGating', 'fr=ConcatFactor2', 'counts_thr=12',
+#                 'area_list=PFC', 'subject=Gonzo_Oscar', 'area=PFC', 'mode=Full', 'mode_seed=0']
+# version = job_scheduler(args_version)
+
 
 def dpca_state_space_plot(version, margin_dim_list, condition_list_slice=False, legend_show=False, azim=-60, elev=30,
-                          legend_letters=('1', '2')):
+                          legend_letters=('1', '2'), parallel=True):
 
     version_factor = version['factor']
     version_fr = version['fr']
@@ -77,6 +81,9 @@ def dpca_state_space_plot(version, margin_dim_list, condition_list_slice=False, 
     # for cl in color_lines:
     #     legend.append(Line2D([0], [0], color=cl[1], lw=4, label='-'.join([legend_letters[1], cl[0]])))
 
+    cond_list = ['PreDist', 'Gating']
+    cond_getter = lambda cond: cond[1]
+
     # plot
     fig = plt.figure(figsize=(6.5, 5))
     ax = plt.subplot('111') if n_dims < 3 else plt.subplot(111, projection='3d')
@@ -84,7 +91,8 @@ def dpca_state_space_plot(version, margin_dim_list, condition_list_slice=False, 
     scatter_method = lambda ax, n_dims: ax.scatter if n_dims < 3 else ax.scatter3D
     task_scatter_points = lambda line_points: [itemgetter(stim_on_index, delay_on_index, delay_off_index)(dim_points) for dim_points in line_points]
     # plot
-    for line_params in plot_params.values():
+    for cond, line_params in plot_params.items():
+        # if cond_getter(cond) in cond_list:
         plot_method(ax, n_dims)(*line_params['line_points'], color=line_params['color'],
                                 linestyle=line_params['linestyle'], linewidth=line_params['linewidth'], alpha=line_params['alpha'])
         scatter_method(ax, n_dims)(*task_scatter_points(line_params['line_points']), color=scatter_color, s=5)
@@ -126,7 +134,7 @@ def dpca_state_space_plot(version, margin_dim_list, condition_list_slice=False, 
 
     # convert plot_params if all margin_dim_list == 'g'
     n_stages = 1
-    if all([margin == 'g' for margin, dim in margin_dim_list]):
+    if 'g' in fbt.keys() and not parallel:
 
         g_ind = dpca_obj.labels.index('g')
         g_keys = np.unique([k[g_ind] for k in plot_params.keys()])
@@ -156,6 +164,7 @@ def dpca_state_space_plot(version, margin_dim_list, condition_list_slice=False, 
 
         def update_lines(t_i, tb_columns, plot_params, lines):
             for line, (cond, line_params) in zip(lines, plot_params.items()):
+                # if cond_getter(cond) in cond_list:
                 data = np.array(line_points_range(line_params['line_points'], t_i))
                 line.set_data(data[:2, :])
                 if len(line_params['line_points']) == 3:
@@ -210,7 +219,7 @@ def dpca_state_space_plot(version, margin_dim_list, condition_list_slice=False, 
         plt.close()
 
 
-    return ax1, ax2
+    return ax1, ax2, dpca_obj
 
 
 
@@ -315,7 +324,7 @@ def dpca_pev_plot(version, num_factors, inner_show, legend_show, title_str=None)
     plt.show()
     ax.set_title(title_str)
 
-    plt.savefig(path.join('figures', '{0:s}_Variance.png'.format(ver_str)), format='png')
+    plt.savefig(path.join('figures', 'dPCA', '{0:s}_Variance.png'.format(ver_str)), format='png')
 
     return ax
 
@@ -342,6 +351,9 @@ def plotting_parameters(version_factor):
     if version_factor == 'StimulusGating':
         linestyle_column = 'StageStimSpecialized'
         color_column = 'GatingCondSpecialized'
+    elif version_factor == 'StimulusGatingNoTarget':
+        linestyle_column = 'StageStimSpecialized'
+        color_column = 'GatingCondSpecialized'
     elif version_factor == 'StimulusGatingBool':
         linestyle_column = 'StageStimSpecialized'
     elif version_factor == 'StimulusGatingPreBool':
@@ -357,8 +369,8 @@ def plotting_parameters(version_factor):
         linestyle_column = 'PostStageStimSpecialized'
         color_column = 'PostRuleStimCategory'
     elif version_factor == 'GatPostStimulusRuleStim':
-        linestyle_column = 'GatPostStageStimSpecialized'
-        color_column = 'GatPostRuleStimCategory'
+        linestyle_column = 'GatPostRuleStimCategory'
+        color_column = 'GatPostStageStimSpecialized'
     elif version_factor == 'RuleStimGatingNull':
         linestyle_column = 'RuleStimCategory'
         color_column = 'GatingNullCondSpecialized'

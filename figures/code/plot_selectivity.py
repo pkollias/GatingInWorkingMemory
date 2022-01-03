@@ -1,6 +1,5 @@
 from rec import *
 import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
 from matplotlib.collections import LineCollection
 from matplotlib.patches import Rectangle
 from matplotlib.patches import Circle
@@ -46,7 +45,7 @@ def selectivity_plot(subject_list, version_aov, version_fr, selection_plot_list,
 
 
     anova = Anova(DataBase([]), {'aov': version_aov, 'fr': version_fr})
-    anova.load_physiology_dict()
+    anova.load_physiology_dict(cropped=True)
     physiology_dict = anova.physiology_dict
 
 
@@ -215,9 +214,9 @@ def selectivity_plot(subject_list, version_aov, version_fr, selection_plot_list,
                             facecolor=shd_clr)
 
             subdir_str = selection if legend_cond_show else ''
-            legend_str = '{0:s}'.format(subdir_str)
+            legend_str = ''
             if cluster_corrected and percent_show:
-                legend_str = '{1:s} (N={2:d}, {3:d}%)'.format(area, subdir_str, significant_n,
+                legend_str = '{1:s}, N={2:d} ({3:d}%)'.format(area, subdir_str, significant_n,
                                                                     round(100 * (float(significant_n) / float(area_n))))
             legend_element = Circle((0, 0), radius=1, edgecolor='w', facecolor=clr, label=legend_str)
             legend.append(legend_element)
@@ -237,7 +236,7 @@ def selectivity_plot(subject_list, version_aov, version_fr, selection_plot_list,
             title_str = '{1:s} (N={2:d}/{3:d})'.format('_'.join(subject_list), '_'.join(area_list), selective_group_n, area_n)
         else:
             title_str = '{1:s} (N={2:d})'.format('_'.join(subject_list), '_'.join(area_list), area_n)
-    if crop[1] > 950:
+    if crop[1] > 950 + 385:
         ax.set_xticks(list(np.linspace(0, 600, 3)) + list(950 + np.linspace(0, 600, 3)))
     else:
         ax.set_xticks(list(np.linspace(0, 900, 4)))

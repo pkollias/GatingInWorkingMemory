@@ -133,7 +133,7 @@ def args_from_parse_func(parse_version):
                                 args_split = ['split=StratifiedBalanceSplit_StimHalf']  # ['split=StratifiedBalanceSplit', 'split=StratifiedBalanceSplit_StimHalf']
                                 args_classifier_ind = ['classifier_ind={0:d}_{1:d}'.format(*clasiifier_ind)]
                                 args_split_split_ind = ['split_split_ind={0:d}_{1:d}'.format(*split_split_ind)]
-                                args_shuffle = ['shuffle={0:02}'.format(shuffle)]
+                                args_shuffle = ['shuffle={0:02d}'.format(shuffle)]
                                 args_version_list.extend(list(map(list, list(product(args_class_list, args_balance_list, args_fr, args_counts_thr,
                                                                                      args_area_list, args_subject, args_area,
                                                                                      args_mode, args_mode_seed, args_split,

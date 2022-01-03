@@ -6,7 +6,7 @@ import seaborn as sns
 from scipy.odr import *
 from itertools import chain
 from matplotlib.gridspec import GridSpec
-
+from versioning import *
 
 def main():
 
@@ -51,16 +51,16 @@ def main():
         maxlim = min(xlim[1], ylim[1])
         ax.text(.9, .95, 'y = x', horizontalalignment='right', verticalalignment='top', transform=ax.transAxes, color='black')
 
-        if fits:
-            ax.plot(xlim, reg.predict(np.array(xlim).reshape(-1, 1)), color='red')
-            ax.plot(xlim, predict(np.array(xlim).reshape(-1, 1), coef_inv, intercept_inv), color='green')
-            ax.plot(xlim, predict(np.array(xlim).reshape(-1, 1), coef_o, intercept_o), color='blue')
-            regression_str = 'y = {0:.2f}*x {1:+.2f}\n$R^2 = {2:.2f}$ (y~x)'.format(coef, intercept, reg.score(x, y))
-            ax.text(.95, 0.05, regression_str, horizontalalignment='right', verticalalignment='bottom', transform=ax.transAxes, color='red')
-            regression_inv_str = 'y = {0:.2f}*x {1:+.2f}\n$R^2 = {2:.2f}$ (x~y)'.format(coef_inv, intercept_inv, reg_inv.score(y, x))
-            ax.text(.95, 0.25, regression_inv_str, horizontalalignment='right', verticalalignment='bottom', transform=ax.transAxes, color='green')
-            regression_o_str = 'y = {0:.2f}*x {1:+.2f} (xy diag)'.format(coef_o, intercept_o)
-            ax.text(.95, 0.45, regression_o_str, horizontalalignment='right', verticalalignment='bottom', transform=ax.transAxes, color='blue')
+        # if fits:
+        #     ax.plot(xlim, reg.predict(np.array(xlim).reshape(-1, 1)), color='red')
+        #     ax.plot(xlim, predict(np.array(xlim).reshape(-1, 1), coef_inv, intercept_inv), color='green')
+        #     ax.plot(xlim, predict(np.array(xlim).reshape(-1, 1), coef_o, intercept_o), color='blue')
+        #     regression_str = 'y = {0:.2f}*x {1:+.2f}\n$R^2 = {2:.2f}$ (y~x)'.format(coef, intercept, reg.score(x, y))
+        #     ax.text(.95, 0.05, regression_str, horizontalalignment='right', verticalalignment='bottom', transform=ax.transAxes, color='red')
+        #     regression_inv_str = 'y = {0:.2f}*x {1:+.2f}\n$R^2 = {2:.2f}$ (x~y)'.format(coef_inv, intercept_inv, reg_inv.score(y, x))
+        #     ax.text(.95, 0.25, regression_inv_str, horizontalalignment='right', verticalalignment='bottom', transform=ax.transAxes, color='green')
+        #     regression_o_str = 'y = {0:.2f}*x {1:+.2f} (xy diag)'.format(coef_o, intercept_o)
+        #     ax.text(.95, 0.45, regression_o_str, horizontalalignment='right', verticalalignment='bottom', transform=ax.transAxes, color='blue')
 
         ax.plot([minlim, maxlim], [minlim, maxlim], color='k')
         center = 1 if mode == 'Modulation' else 0
@@ -77,7 +77,7 @@ def main():
 
     for version_fr in ['WindowSampleShift', 'WindowDelayShift']:
 
-        v_fr_params = anova_version_fr_params(version_fr)
+        v_fr_params = version_fr_params(version_fr)
         t_start = v_fr_params['t_start']
         t_end = v_fr_params['t_end']
         timebin = v_fr_params['timebin']
@@ -113,7 +113,7 @@ def main():
             for regressor in [LinearRegression, HuberRegressor]:
 
                 fig = plt.figure(constrained_layout=True, figsize=(16, 9))
-                gs = GridSpec(4, 9, figure=fig)
+                gs = GridSpec(6, 9, figure=fig)
                 fig.suptitle('{1:s}\nFiring Rate {2:s}\n{3:s}\n{4:s}\n{5:s}-scale axes'.format(_, version_fr, mode, regressor.__name__, stim_group, scale))
 
                 for area_index, area in enumerate(['PFC', 'Stri', 'IT']):
@@ -189,6 +189,8 @@ def main():
 
                     ax1 = fig.add_subplot(gs[:3, slice(3 * area_index, 3 * (area_index + 1))])
                     ax1a = fig.add_subplot(gs[3, slice(3 * area_index, 3 * (area_index + 1))])
+                    ax1b = fig.add_subplot(gs[4, slice(3 * area_index, 3 * (area_index + 1))])
+                    ax1c = fig.add_subplot(gs[5, slice(3 * area_index, 3 * (area_index + 1))])
 
                     params = (fig, ax1, x, y, coef, intercept, reg, coef_inv, intercept_inv, reg_inv, coef_o, intercept_o, mode)
                     if scale == 'log':
@@ -212,6 +214,20 @@ def main():
                     ax1a.set_ylabel('counts')
                     ax1a.legend(['Significant $\omega^2$', 'Non-significant'])
                     ax1a.set_title('Distance from Diagonal Histogram')
+
+                    sns.histplot(data=pd.DataFrame({'x': x.flatten(), 'Significant': significance_mask}), x="x", hue="Significant", element='step', fill=True, stat='probability', common_norm=False, ax=ax1b, alpha=0.075)
+                    ax1b.vlines(0, ax1b.get_ylim()[0], ax1b.get_ylim()[1], color='k')
+                    ax1b.set_xlim(ax1.get_xlim())
+                    ax1b.set_xlabel('PreDist')
+                    ax1b.set_ylabel('counts')
+                    ax1b.legend(['Significant $\omega^2$', 'Non-significant'])
+
+                    sns.histplot(data=pd.DataFrame({'y': y.flatten(), 'Significant': significance_mask}), x="y", hue="Significant", element='step', fill=True, stat='probability', common_norm=False, ax=ax1c, alpha=0.075)
+                    ax1c.vlines(0, ax1c.get_ylim()[0], ax1c.get_ylim()[1], color='k')
+                    ax1c.set_xlim(ax1.get_ylim())
+                    ax1c.set_xlabel('Gating')
+                    ax1c.set_ylabel('counts')
+                    ax1c.legend(['Significant $\omega^2$', 'Non-significant'])
 
 
                 plt.savefig('Modulation_{1:s}_{2:s}_{3:s}_{4:s}_{5:s}.png'.format(_, version_fr, mode, regressor.__name__, stim_group, scale), format='png')

@@ -34,17 +34,18 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    for factor, counts_thr in [('GatedStimulusPostDistMemory', '6'), ('GatedStimulusPostDistMemory', '8'),
-                               ('GatedStimulusPostDistMemory', '10'), ('GatedStimulusPostDistMemory', '12')]:
-        args_factor = ['factor={0:s}'.format(factor)]
-        args_fr = ['fr=ConcatFactor2']
-        args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
-        args_fr_thr = ['fr_thr=100']
-        args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_fr_thr)))))
+    # for factor, counts_thr in [('GatedStimulusPostDistMemory', '6'), ('GatedStimulusPostDistMemory', '8'),
+    #                            ('GatedStimulusPostDistMemory', '10'), ('GatedStimulusPostDistMemory', '12')]:
+    #     args_factor = ['factor={0:s}'.format(factor)]
+    #     args_fr = ['fr=ConcatFactor2']
+    #     args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
+    #     args_fr_thr = ['fr_thr=100']
+    #     args_version_list.extend(list(map(list, list(product(args_factor, args_fr, args_counts_thr, args_fr_thr)))))
 
     for counts_thr in ['10', '12', '16']:
-        for factor in ['GatPostStimulusRuleStim', 'TargPostStimulusRuleStim',
-                       'GatingPreBool', 'StimulusGating', 'StimulusGatingPreBool']:
+        # for factor in ['GatPostStimulusRuleStim', 'TargPostStimulusRuleStim',
+        #                'GatingPreBool', 'StimulusGating', 'StimulusGatingPreBool']:
+        for factor in ['StimulusGatingNoTarget']:
             args_factor = ['factor={0:s}'.format(factor)]
             args_fr = ['fr=ConcatFactor2']
             args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]

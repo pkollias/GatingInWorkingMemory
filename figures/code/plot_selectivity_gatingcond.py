@@ -1,4 +1,3 @@
-from rec import *
 from aov_stats import *
 import matplotlib.pyplot as plt
 from versioning import *
@@ -6,14 +5,7 @@ from matplotlib.patches import Rectangle
 from matplotlib.offsetbox import AnchoredText
 
 
-def selectivity_plot(subject_list, version_fr, x_cluster_label, area_list, ylim_arg, title, crop=(-50, 1000)):
-
-    v_fr_params = version_fr_params(version_fr)
-    t_start = v_fr_params['t_start']
-    t_end = v_fr_params['t_end']
-    timebin = v_fr_params['timebin']
-    timestep = v_fr_params['timestep']
-    timebin_interval = TimebinInterval(timebin, timestep, t_start, t_end)
+def selectivity_plot(subject_list, version_fr, x_cluster_label, x_cluster_label_list, area_list, ylim_arg, title, crop=(-50, 1000)):
 
     # version parameters
     version_aov = 'GeneralizedGating'
@@ -21,6 +13,21 @@ def selectivity_plot(subject_list, version_fr, x_cluster_label, area_list, ylim_
     x_b = 'StageStimSpecialized'
     x_ab = interaction_term(x_a, x_b)
     x_factors = [x_a, x_b, x_ab]
+
+    # subject_list = ['Oscar' 'Gonzo']
+    # version_fr = 'ConcatFactor'
+    # x_cluster_label = x_a
+    # x_cluster_label_list = [(x_a, True), (x_ab, False)]
+    # area_list = ['PFC']
+    # ylim_arg = None
+    # title = ''
+
+    v_fr_params = version_fr_params(version_fr)
+    t_start = v_fr_params['t_start']
+    t_end = v_fr_params['t_end']
+    timebin = v_fr_params['timebin']
+    timestep = v_fr_params['timestep']
+    timebin_interval = TimebinInterval(timebin, timestep, t_start, t_end)
 
     selection_plot_list = ['All']
     selection_list = ['All']
@@ -46,6 +53,8 @@ def selectivity_plot(subject_list, version_fr, x_cluster_label, area_list, ylim_
     linewidth = dict(zip(line_list, linewidth_list))
     linestyle = dict(zip(line_list, linestyle_list))
 
+    def apply_label_constraint_to_unit(unit, x_cl_list):
+        return all([unit[x_label]['valid'] and bool(unit[x_label]['clusters']) == val for x_label, val in x_cl_list])
 
     ### TODO: polish later. Rushed
     # filter subject units
@@ -58,13 +67,20 @@ def selectivity_plot(subject_list, version_fr, x_cluster_label, area_list, ylim_
     units.set_index('tuple_index', drop=True, inplace=True)
     ### TODO: improve all that
     filtered_ind = set(units.index)
-    valid_ind = set.intersection(*[set([unit_ind for unit_ind, unit in selection_dict.items() if unit[x_cluster_label]['valid']]) for selection_dict in physiology_dict.values()])
+    valid_ind = set.intersection(*[set([unit_ind
+                                        for unit_ind, unit in selection_dict.items()
+                                        if unit[x_cluster_label]['valid']])
+                                   for selection_dict in physiology_dict.values()])
+    cluster_valid_ind = set.intersection(*[set([unit_ind
+                                        for unit_ind, unit in selection_dict.items()
+                                        if apply_label_constraint_to_unit(unit, x_cluster_label_list)])
+                                   for selection_dict in physiology_dict.values()])
     filtered_valid_ind = set.intersection(filtered_ind, valid_ind)
 
     # calculate selective_interaction_ind from selective_population_ind by running this script with interaction x_ab cluster_label
     # filtered_valid_ind = set(filtered_valid_ind).difference(selective_interaction_ind)
 
-    selective_per_selection_ind = dict([(selection, set([unit_ind for unit_ind, unit in selection_dict.items() if bool(unit[x_cluster_label]['clusters'])]).intersection(filtered_valid_ind)) for selection, selection_dict in physiology_dict.items()])
+    selective_per_selection_ind = dict([(selection, set([unit_ind for unit_ind, unit in selection_dict.items() if bool(unit[x_cluster_label]['clusters'])]).intersection(cluster_valid_ind)) for selection, selection_dict in physiology_dict.items()])
     selective_population_ind = set.union(*[selection_ind for selection_ind in selective_per_selection_ind.values()])
     units_per_area_ind = dict([(area, set(units.loc[units['Area'].eq(area)].index).intersection(filtered_valid_ind)) for area in area_list])
 
@@ -75,8 +91,8 @@ def selectivity_plot(subject_list, version_fr, x_cluster_label, area_list, ylim_
     for selection in selection_list:
         for area in area_list:
 
-            # unit_ind_list = set.intersection(units_per_area_ind[area], selective_population_ind)
-            unit_ind_list = units_per_area_ind[area]
+            unit_ind_list = set.intersection(units_per_area_ind[area], selective_population_ind)
+            # unit_ind_list = units_per_area_ind[area]
 
             # get physiology slice
             pev_omega_sq[(selection, area)] = {'array': [physiology_dict[selection][unit_index][x_cluster_label]['zscores']
@@ -131,7 +147,8 @@ def selectivity_plot(subject_list, version_fr, x_cluster_label, area_list, ylim_
     ax.add_patch(Rectangle((0, ylims[0]), 385, ylims[1]-ylims[0], color='k', alpha=0.1))
     ax.hlines(0, xlims[0], xlims[1], '#999999', linestyles='dashed')
 
-    title_str = '{0:s}: {1:s}'.format('_'.join(subject_list), title)
+    # title_str = '{0:s}: {1:s}'.format('_'.join(subject_list), title)
+    title_str = '{1:s}'.format('_'.join(subject_list), title)
     ax.set_title(title_str)
     ax.set_xlabel('event time (ms) relative to sample onset')
     ax.set_ylabel('z-scored $\omega^2$')

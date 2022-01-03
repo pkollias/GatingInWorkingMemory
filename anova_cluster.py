@@ -16,7 +16,7 @@ def main():
     shuffles = int(version['shuffles'])
     version_fr = version['fr']
 
-    omega_percentile = 85
+    omega_percentile = 95
     cluster_percentile = 95
 
     # version parameters
@@ -48,7 +48,7 @@ def main():
                                         'time_anova_cluster_results_{0:s}_chan{1:03d}_unit{2:03d}.pkl'.
                                         format(sess, channum, unitnum))
     print(target_filename)
-    if path.exists(target_filename):
+    if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
         exit()
 
     # load unit time results
@@ -76,6 +76,8 @@ def main():
             if shuffle_clusters:
                 # append maximum value cluster
                 cluster_val_distr.append(max([cluster['val'] for cluster in shuffle_clusters]))
+            else: ### TODO: Is that the right way to do cluster correction?
+                cluster_val_distr.append(0)
 
         # estimate cluster threshold
         cluster_threshold = np.percentile(cluster_val_distr, cluster_percentile, interpolation='linear') if cluster_val_distr else -np.inf
@@ -99,7 +101,7 @@ def args_from_parse_func(parse_version):
     args_version_list = []
 
     args_u_iloc = ['u_iloc={0:d}'.format(u_iloc) for u_iloc in range(2436)]
-    args_aov = ['aov={0:s}'.format(aov) for aov in ['GatedStimulus', 'PresentedStimulus', 'GatedGroup']]
+    args_aov = ['aov={0:s}'.format(aov) for aov in ['PresentedStimulus', 'GatedStimulus']]
     args_selection = ['selection={0:s}'.format(selection) for selection in ['Cue', 'PreDist', 'Gating', 'PostDist', 'Target']]
     args_shuffles = ['shuffles=2000']
     args_fr = ['fr=ConcatFactor']

@@ -68,14 +68,13 @@ for subject in ['Oscar', 'Gonzo']:
     sc_series = (attempted.StopCondition.value_counts() / len(attempted)).loc[[1, -7, -6]]
 
     ax, fig = {}, {}
-
+    fig[plot_label], ax[plot_label] = plt.subplots(figsize=(5.71, 2.54))
 
     # Response Types
     plot_label = 'AttemptedOutcome'
 
-    c
     data = sc_series.to_list()
-    colors = ['#14b353', '#ad2415', '#919191']
+    colors = ['#146e38', '#ad2415', '#919191']
     labels = ['CORRECT', 'EARLY', 'LATE']
     explode = [0.05 for _ in range(3)]
     wedges, texts = plt.pie(data, colors=colors, labels=['', '', ''], explode=explode, wedgeprops=dict(width=1),
@@ -92,20 +91,20 @@ for subject in ['Oscar', 'Gonzo']:
         horizontalalignment = {-1: "right", 1: "left"}[int(np.sign(x))]
         connectionstyle = "angle,angleA=0,angleB={}".format(ang)
         kw["arrowprops"].update({"connectionstyle": connectionstyle})
-        ax.annotate('{0:.2f}%'.format(100 * data[i]), xy=(x, y), xytext=(1.35 * np.sign(x), 1.4 * y),
+        ax[plot_label].annotate('{0:.2f}%'.format(100 * data[i]), xy=(x, y), xytext=(1.35 * np.sign(x), 1.4 * y),
                     horizontalalignment=horizontalalignment, **kw)
     if subject == 'Gonzo':
         plt.legend(wedges, labels, frameon=False)
-        ax.get_legend().set_bbox_to_anchor((1, .75))
+        ax[plot_label].get_legend().set_bbox_to_anchor((1, .75))
 
-    ax.get_figure().savefig('figures/Behavior/StopCondition_{0:s}.png'.format(subject), format='png')
-    # ax.set_position([0.3, 0.3, 0.4, 0.4])
-    # fig[plot_label] = plt.figure(figsize=(7, 7))
-    # ax[plot_label] = sc_series.plot.bar()
-    # ax[plot_label].set_xticklabels(('CORRECT', 'EARLY', 'LATE'))
-    # ax[plot_label].set_ylim((0, 1))
-    # ax[plot_label].set_ylabel('Ratio over Attempted Trials')
-    # ax[plot_label].set_title('Attempted Trials Outcome Distribution')
+    # ax[plot_label].get_figure().savefig('figures/Behavior/StopCondition_{0:s}.png'.format(subject), format='png')
+    ax[plot_label].set_position([0.3, 0.3, 0.4, 0.4])
+    fig[plot_label] = plt.figure(figsize=(7, 7))
+    ax[plot_label] = sc_series.plot.bar()
+    ax[plot_label].set_xticklabels(('CORRECT', 'EARLY', 'LATE'))
+    ax[plot_label].set_ylim((0, 1))
+    ax[plot_label].set_ylabel('Ratio over Attempted Trials')
+    ax[plot_label].set_title('Attempted Trials Outcome Distribution')
 
 
     # accuracy by number of distractors
@@ -121,8 +120,8 @@ for subject in ['Oscar', 'Gonzo']:
     data = attempted.pivot_table(values='Correct', index='NumPre', columns='NumPost', aggfunc=np.mean)
     ax[plot_label] = sns.heatmap(
         attempted.pivot_table(values='Correct', index='NumPre', columns='NumPost', aggfunc=np.mean), vmin=0.75, vmax=1,
-        annot=np.reshape(labels, data.get_current_shape), fmt='', annot_kws={"fontsize":9})
-    ax[plot_label].set_title('Accuracy by Number of Distractors')
+        annot=np.reshape(labels, data.shape), fmt='', annot_kws={"fontsize":9})
+    ax[plot_label].set_title('Accuracy by Number of Distractors\n{0:s}'.format(subject))
 
 
     # break fixation by number of distractors
