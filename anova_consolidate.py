@@ -5,11 +5,13 @@ from versioning import *
 
 
 def main():
+    """ aov, fr, [overwrite] """
+    args_version = sys.argv[1:]
+    # args_version = ['job_id=0', 'overwrite=True']
+    version = job_scheduler(args_version, args_from_parse_func)
 
-    # load analysis parameters
-    args = sys.argv
-    version_aov = args[1]
-    version_fr = args[2]
+    version_aov = version['aov']
+    version_fr = version['fr']
 
     # version parameters
     v_aov_params = anova_version_aov_params(version_aov, version_fr)
@@ -31,7 +33,7 @@ def main():
                                                   behunit_params_str(version_fr, timebin, timestep, t_start, t_end), 'consolidate'),
                                         'physiology_dict.pkl')
     print(target_filename)
-    if path.exists(target_filename):
+    if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
         exit()
 
     physiology_dict = {}
@@ -66,6 +68,21 @@ def main():
                                                                'zscores': zscores}
 
     md.np_saver(physiology_dict, target_filename)
+
+
+def args_from_parse_func(parse_version):
+
+    args_version_list = []
+
+    args_aov = ['aov={0:s}'.format(aov) for aov in ['GatedCue']]
+    args_fr = ['fr=ConcatFactor']
+    args_version_list.extend(list(map(list, list(product(args_aov, args_fr)))))
+
+    args_version_from_job = args_version_list[int(parse_version['job_id'])]
+    if 'overwrite' in parse_version.keys():
+        args_version_from_job.append('overwrite={0:s}'.format(parse_version['overwrite']))
+
+    return args_version_from_job
 
 
 main()

@@ -9,6 +9,7 @@ from dPCA import dPCA
 from copy import copy
 from itertools import chain
 from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
 from sklearn.model_selection import train_test_split
 
 
@@ -324,8 +325,12 @@ class PopulationBehavioralTimeseries:
 
     def to_PCA_scale_array(self):
         X, records = self.to_PCA_array()
-        X_scale = StandardScaler().fit_transform(X.transpose()).transpose()
-        return (X, X_scale), records
+        scaler = StandardScaler()
+        X_scale = scaler.fit_transform(X)
+        return (X, X_scale), records, scaler
+
+    # def fbt_from_PCA(self): ### pk
+    #     (X, X_scale), records = self.to_PCA_scale_array()
 
     def to_dPCA_mean_array(self):
         # init params
@@ -350,8 +355,8 @@ class PopulationBehavioralTimeseries:
     def to_dPCA_mean_demean_array(self):
         X_mean, records = self.to_dPCA_mean_array()
         mean_shape = X_mean.shape
-        X__mean_2d = X_mean.reshape((mean_shape[0], -1))
-        X_mean_demean = StandardScaler(with_std=False).fit_transform(X__mean_2d.transpose()).transpose().reshape(mean_shape)
+        X_mean_2d = X_mean.reshape((mean_shape[0], -1))
+        X_mean_demean = StandardScaler(with_std=False).fit_transform(X_mean_2d.transpose()).transpose().reshape(mean_shape)
         return (X_mean, X_mean_demean), records
 
     def to_dPCA_trial_array(self):
@@ -410,8 +415,25 @@ class PseudoPopulationBehavioralTimeseries(PopulationBehavioralTimeseries):
                                  unzip_columns(self.df, 'Condition', self.condition_labels)], axis=1)
         return unzipped_df.loc[:, ~unzipped_df.columns.duplicated()]
 
-    def to_PCA_array(self): pass
-    def to_PCA_scale_array(self): pass
+    def to_PCA_array(self):
+        df_base = self.df
+        grouper = df_base.groupby(['Unit', 'Unit_Code', 'Condition', 'Instance'])
+        num_units = df_base['Unit_Code'].nunique()
+        num_conditions = df_base['Condition'].nunique()
+        num_instances = df_base.groupby(['Unit', 'Unit_Code', 'Condition']).size().unique()[0]
+        num_timebins = self.timebin_interval.num_of_bins()
+        # order indices by groupping order unit, condition, instance
+        index_list = [index for _, group in grouper for index in group.index]
+        # create pre_pca unit, condition, instance, timebin array
+        X_preshape = (num_units, num_conditions, num_instances, num_timebins)
+        X_pre = np.array(df_base.iloc[index_list]['Timeseries'].tolist()).reshape(X_preshape)
+        # convert to pca array format
+        X_shape = (num_conditions * num_instances * num_timebins, num_units)
+        X = X_pre.transpose(1, 2, 3, 0).reshape(X_shape)
+        # unit, condition, instance information for reconstruction
+        records = df_base.iloc[index_list][['Unit', 'Unit_Code', 'Condition', 'Instance']].to_records()
+        return X, records
+
     def to_dPCA_mean_array(self): pass
     def to_dPCA_mean_demean_array(self): pass
     def to_dPCA_trial_array(self): pass
@@ -451,7 +473,6 @@ class FactorBehavioralTimeseries(PopulationBehavioralTimeseries):
     def get_unit_slice(self): pass
     def add_data_row(self): pass
     def add_data_rows_from_list(self): pass
-    def to_PCA_array(self): pass
     def to_dPCA_mean_array(self): pass
     def to_dPCA_trial_array(self): pass
 
@@ -612,7 +633,8 @@ class ClassificationAnalysis(Analysis):
         pseudotrial_result = generate_pseudotrial_from_behavioral_units(behavioral_units,
                                                                         self.get_assembly_condition_columns(),
                                                                         self.get_class_condition_columns(),
-                                                                        int(get_seed(hash((seed, '_'.join(self.version.values()))))))
+                                                                        int(get_seed((seed, '_'.join(list(self.version.values())[2:]))))) # hash omits
+                                                                                                                                        # class and balance
         pseudotrial, unit_inds, unit_codes, class_codes, classes = pseudotrial_result
 
         # get C ordered list of behavioral units for X array

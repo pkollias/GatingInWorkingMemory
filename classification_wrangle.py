@@ -3,14 +3,9 @@ from rec_analyses import *
 
 
 def main():
-
+    """ class, balance, fr, counts_thr, [overwrite] """
     args_version = sys.argv[1:]
-
-    """ class=, balance=, fr=, counts_thr=, [overwrite=] """
-    # args_version = ['class=Stimulus', 'balance=StageGatingCentered', 'fr=ConcatFactor2', 'counts_thr=15']
     # args_version = ['job_id=0']
-
-    # load analysis parameters
     version = job_scheduler(args_version, args_from_parse_func)
 
     # create analysis object

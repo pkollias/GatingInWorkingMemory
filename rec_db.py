@@ -106,10 +106,15 @@ def generate_pseudotrial_from_behavioral_units(behavioral_units, assembly_condit
     events_index = md.preproc_imports['events']['index']
 
     # util functions for shuffled pseudotrial generation
-    def zip_events(df): return zip_columns(df, events_index + ['Instance'], 'PseudoEvent')
+    def zip_events(df):
+        return zip_columns(df, events_index + ['Instance'], 'PseudoEvent')
     # ensure that each group has its own seed
-    def shuffle_group_rows(group): return group.groupby(assembly_condition_columns).sample(frac=1, random_state=get_seed((seed, group.name)))
-    def apply_func(group): return list(zip_events(shuffle_group_rows(group)))
+    def shuffle_group_rows(group):
+        groupper = group.groupby(assembly_condition_columns)
+        # return groupper.apply(lambda subgroup: subgroup.sample(frac=1, random_state=get_seed((seed, group.name)))).reset_index(drop=True)
+        return groupper.sample(frac=1, random_state=get_seed((seed, group.name)))
+    def apply_func(group):
+        return list(zip_events(shuffle_group_rows(group)))
 
     # get transpose of pseudotrial event indices by shuffling events within condition and then stacking together
     unit_grouper = behavioral_units.groupby(units_index + ['Unit_Code'])

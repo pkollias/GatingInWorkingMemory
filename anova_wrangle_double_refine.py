@@ -1,8 +1,6 @@
 import sys
 from rec import *
-from functools import reduce
 from rec_format import *
-from itertools import product
 from versioning import *
 
 

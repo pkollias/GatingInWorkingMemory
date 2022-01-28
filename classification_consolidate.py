@@ -2,12 +2,11 @@ import sys
 from rec_utils import *
 
 def main():
-
+    """ class, balance, fr, counts_thr, area_list, subject, area, mode, mode_seed,
+    split, pseudo_seed, shuffle_range, [overwrite] """
     args_version = sys.argv[1:]
-
     # args_version = ['job_id=0', 'overwrite=True']
 
-    # load analysis parameters
     version = job_scheduler(args_version, args_from_parse_func)
 
     classifier = ClassificationAnalysis(DataBase([]), version)

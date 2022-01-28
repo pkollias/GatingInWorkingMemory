@@ -3,15 +3,11 @@ from rec_utils import *
 
 
 def main():
-
+    """ class, balance, fr, area_list, subject, [overwrite] """
     args_version = sys.argv[1:]
-
-    """ class=, balance, fr=, area_list=, subject=, [overwrite=] """
-    # args_version = ['class=Stimulus', 'balance=StageGatingCentered', 'fr=ConcatFactor2', 'area_list=PFC_Stri', 'subject=Gonzo_Oscar']
     # args_version = ['job_id=0', 'overwrite=True']
-
-    # load analysis parameters
     version = job_scheduler(args_version, args_from_parse_func)
+
     version_filename = version.copy()
 
     result_dict = {}

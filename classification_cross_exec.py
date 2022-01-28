@@ -3,18 +3,10 @@ from rec_analyses import *
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 def main():
-
+    """ class_list, balance_list, fr, counts_thr, area_list, subject, area, mode, mode_seed, pseudo_seed, split,
+        classifier_ind, split_split_ind, shuffle, [overwrite] """
     args_version = sys.argv[1:]
-
-    """ class_list=, balance_list=, fr=, counts_thr=, area_list=, subject=, area=, mode=, mode_seed=, pseudo_seed=, split=, 
-    classifier_ind=, split_split_ind=, [overwrite=] """
-    # args_version = ['class_list=Stimulus_GatedStimulus', 'balance_list=StageGatingPrePost_StageGatingPrePost',
-    #                 'fr=ConcatFactor2', 'counts_thr=15', 'area_list=PFC_Stri', 'subject=Gonzo_Oscar', 'area=PFC',
-    #                 'mode=Normal', 'mode_seed=0', 'pseudo_seed=0', 'split=StratifiedStim',
-    #                 'classifier_ind=0_0', 'split_split_ind=0_0', 'shuffle=0']
     # args_version = ['job_id=0', 'overwrite=True']
-
-    # load analysis parameters
     version = job_scheduler(args_version, args_from_parse_func)
 
     classifier_ind = list(map(int, version['classifier_ind'].split('_')))

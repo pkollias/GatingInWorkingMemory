@@ -3,15 +3,9 @@ from rec_utils import *
 
 
 def main():
-
+    """ class, balance, fr, counts_thr, area_list, subject, area, mode, mode_seed, [overwrite] """
     args_version = sys.argv[1:]
-
-    """ class=, balance, fr=, counts_thr=, area_list=, subject=, area=, mode=, mode_seed=, [overwrite=] """
-    # args_version = ['class=Stimulus', 'balance=StageGatingCentered', 'fr=ConcatFactor2', 'counts_thr=30',
-    # 'area_list=PFC_Stri', 'subject=Gonzo_Oscar', 'area=PFC', 'mode=Normal', 'mode_seed=0']
     # args_version = ['job_id=0']
-
-    # load analysis parameters
     version = job_scheduler(args_version, args_from_parse_func)
 
     # create analysis object
@@ -68,9 +62,12 @@ def main():
     # sample counts_thr events for every unit x condition (replace for Bootstrap)
     replace_events = classifier.version['mode'] in ['Bootstrap', 'BootstrapEvents']
     seed_events = mode_seed
-    behavioral_units = area_conditions_grouper.sample(counts_thr,
-                                                      random_state=get_seed(('events', seed_events)),
-                                                      replace=replace_events)
+    # the apply -> sample is done to ensure that subgroups (Gating specifically) will be consistently sampled across
+    # classification classes
+    behavioral_units = area_conditions_grouper.apply(lambda group:
+                                                     group.sample(counts_thr,
+                                                                  random_state=get_seed(('events', seed_events)),
+                                                                  replace=replace_events)).reset_index(drop=True)
 
     pbt = pbt_from_behavioral_units(condition_columns, version['fr'], behavioral_units, db)
 

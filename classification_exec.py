@@ -4,16 +4,10 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
 
 def main():
-
+    """ class_list, balance_list, fr, counts_thr, area_list, subject, area, mode, mode_seed, pseudo_seed,
+    split, split_ind, shuffle, [overwrite] """
     args_version = sys.argv[1:]
-
-    """ class=, balance, fr=, counts_thr=, area_list=, subject=, area=, mode=, mode_seed=, pseudo_seed=, shuffle=, split=, split_ind=, [overwrite=] """
-    # args_version = ['class=Stimulus', 'balance=StageGatingCentered', 'fr=ConcatFactor2', 'counts_thr=15',
-    #                 'area_list=PFC_Stri', 'subject=Gonzo_Oscar', 'area=PFC', 'mode=Normal',
-    #                 'mode_seed=0', 'pseudo_seed=0', shuffle=0, 'split=StratifiedStim', 'split_ind=0']
     # args_version = ['job_id=0', 'overwrite=True']
-
-    # load analysis parameters
     version = job_scheduler(args_version, args_from_parse_func)
 
     # create analysis object

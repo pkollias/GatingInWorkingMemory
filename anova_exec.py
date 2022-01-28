@@ -5,14 +5,16 @@ from versioning import *
 
 
 def main():
+    """ u_iloc, aov, fr, selection, shuffles, [overwrite] """
+    args_version = sys.argv[1:]
+    # args_version = ['job_id=0', 'overwrite=True']
+    version = job_scheduler(args_version, args_from_parse_func)
 
-    args = sys.argv
-    u_iloc = int(args[1])
-    version_aov = args[2]
-    selection = args[3]
-    shuffles = int(args[4])
-    version_fr = args[5]
-
+    u_iloc = int(version['u_iloc'])
+    version_aov = version['aov']
+    selection = version['selection']
+    shuffles = int(version['shuffles'])
+    version_fr = version['fr']
 
     # version parameters
     v_aov_params = anova_version_aov_params(version_aov, version_fr)
@@ -24,8 +26,6 @@ def main():
     t_end = v_fr_params['t_end']
     timebin = v_fr_params['timebin']
     timestep = v_fr_params['timestep']
-
-
 
     # load data and init vars, tables, and slices
     md = MetaData()
@@ -44,7 +44,7 @@ def main():
                                         'time_anova_results_{0:s}_chan{1:03d}_unit{2:03d}.pkl'.
                                         format(sess, channum, unitnum))
     print(target_filename)
-    if path.exists(target_filename):
+    if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
         exit()
 
     events_index = md.preproc_imports['events']['index']
@@ -75,6 +75,24 @@ def main():
                                         'bin_onset': int(y_numstr)}
 
     md.np_saver(unit_time_results, target_filename)
+
+
+def args_from_parse_func(parse_version):
+
+    args_version_list = []
+
+    args_u_iloc = ['u_iloc={0:d}'.format(u_iloc) for u_iloc in range(2436)]
+    args_aov = ['aov={0:s}'.format(aov) for aov in ['GatedCue']]
+    args_selection = ['selection={0:s}'.format(selection) for selection in ['Cue', 'PreDist', 'Gating', 'PostDist', 'Target']]
+    args_shuffles = ['shuffles=2000']
+    args_fr = ['fr=ConcatFactor']
+    args_version_list.extend(list(map(list, list(product(args_aov, args_selection, args_shuffles, args_fr, args_u_iloc)))))
+
+    args_version_from_job = args_version_list[int(parse_version['job_id'])]
+    if 'overwrite' in parse_version.keys():
+        args_version_from_job.append('overwrite={0:s}'.format(parse_version['overwrite']))
+
+    return args_version_from_job
 
 
 main()

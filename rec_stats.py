@@ -2,6 +2,7 @@ from rec import TimebinInterval
 from versioning import *
 from rec_db import *
 from sklearn.preprocessing import StandardScaler
+from math import degrees
 
 def estimate_cluster_mass_2d(cluster_vals_array, alternative='greater', observed=False):
 
@@ -48,3 +49,11 @@ def coords_list_to_mask(coords_list, mask_shape):
     mask[list(zip(*coords_list))] = False
 
     return mask
+
+def vector_angle(v1, v2):
+
+    unit_vector_1 = v1 / np.linalg.norm(v1)
+    unit_vector_2 = v2 / np.linalg.norm(v2)
+    dot_product = np.dot(unit_vector_1, unit_vector_2)
+    angle = np.arccos(dot_product)
+    return degrees(angle)

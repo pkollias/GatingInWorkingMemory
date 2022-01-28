@@ -3,16 +3,9 @@ from rec_analyses import *
 
 
 def main():
-
+    """ class, balance, fr, counts_thr, area_list, subject, area, mode, mode_seed, pseudo_seed, split, [overwrite] """
     args_version = sys.argv[1:]
-
-    """ class=, balance, fr=, counts_thr=, area_list=, subject=, area=, mode=, mode_seed=, pseudo_seed=, split=, [overwrite=] """
-    # args_version = ['class=Stimulus', 'balance=StageGatingCentered', 'fr=ConcatFactor2', 'counts_thr=15',
-    #                 'area_list=PFC_Stri', 'subject=Gonzo_Oscar', 'area=PFC', 'mode=Bootstrap',
-    #                 'mode_seed=0', 'pseudo_seed=0', 'split=StratifiedStim']
     # args_version = ['job_id=0', 'overwrite=True']
-
-    # load analysis parameters
     version = job_scheduler(args_version, args_from_parse_func)
 
     # create analysis object
@@ -36,21 +29,40 @@ def args_from_parse_func(parse_version):
     args_version_list = []
 
     for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
-        args_class = ['class=GatingPreBoolGeneralized']
-        args_balance = ['balance=Stimulus']
-        args_fr = ['fr=ConcatFactor2']
-        args_counts_thr = ['counts_thr={0:s}'.format(counts_thr) for counts_thr in ['12', '15']]
-        args_area_list = ['area_list={0:s}'.format(area_list)]
-        args_subject = ['subject=Gonzo_Oscar']
-        args_area = ['area={0:s}'.format(area)]
-        args_mode = ['mode=Normal']
-        args_mode_seed = ['mode_seed=0']
-        # args_mode_seed = ['mode_seed={0:s}'.format(mode_seed) for mode_seed in [str(ms) for ms in range(10)]]
-        args_pseudo_seed = ['pseudo_seed={0:s}'.format(pseudo_seed) for pseudo_seed in [str(ps) for ps in range(10)]]
-        args_split = ['split={0:s}'.format(split) for split in ['StratifiedStim', 'OneStimTest', 'OneStimTrain', 'WithinGroupTransfer', 'AcrossGroupTransfer']]
-        args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
-                                                             args_area_list, args_subject, args_area, args_mode,
-                                                             args_mode_seed, args_pseudo_seed, args_split)))))
+        for class_i, balance in [('Stimulus', 'StageGatingPrePostMemory'), ('GatedStimulus', 'StageGatingPrePostSensory')]:
+            args_class = ['class={0:s}'.format(class_i)]
+            args_balance = ['balance={0:s}'.format(balance)]
+            args_fr = ['fr=ConcatFactor2']
+            args_counts_thr = ['counts_thr=12']
+            args_area_list = ['area_list={0:s}'.format(area_list)]
+            args_subject = ['subject=Gonzo_Oscar']
+            args_area = ['area={0:s}'.format(area)]
+            args_mode = ['mode=Normal']
+            args_mode_seed = ['mode_seed=0']
+            args_pseudo_seed = ['pseudo_seed={0:d}'.format(ps_i) for ps_i in range(1)]
+            args_split = ['split=StratifiedBalanceSplit_StimHalf']
+            args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+                                                                 args_area_list, args_subject, args_area, args_mode,
+                                                                 args_mode_seed, args_pseudo_seed, args_split)))))
+
+    # args_version_list = []
+    #
+    # for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
+    #     args_class = ['class=GatingPreBoolGeneralized']
+    #     args_balance = ['balance=Stimulus']
+    #     args_fr = ['fr=ConcatFactor2']
+    #     args_counts_thr = ['counts_thr={0:s}'.format(counts_thr) for counts_thr in ['12', '15']]
+    #     args_area_list = ['area_list={0:s}'.format(area_list)]
+    #     args_subject = ['subject=Gonzo_Oscar']
+    #     args_area = ['area={0:s}'.format(area)]
+    #     args_mode = ['mode=Normal']
+    #     args_mode_seed = ['mode_seed=0']
+    #     # args_mode_seed = ['mode_seed={0:s}'.format(mode_seed) for mode_seed in [str(ms) for ms in range(10)]]
+    #     args_pseudo_seed = ['pseudo_seed={0:s}'.format(pseudo_seed) for pseudo_seed in [str(ps) for ps in range(10)]]
+    #     args_split = ['split={0:s}'.format(split) for split in ['StratifiedStim', 'OneStimTest', 'OneStimTrain', 'WithinGroupTransfer', 'AcrossGroupTransfer']]
+    #     args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+    #                                                          args_area_list, args_subject, args_area, args_mode,
+    #                                                          args_mode_seed, args_pseudo_seed, args_split)))))
 
     # args_version_list = []
     #

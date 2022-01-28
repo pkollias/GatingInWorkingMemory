@@ -2,12 +2,10 @@ import sys
 from rec_utils import *
 
 def main():
-
+    """ class_list, balance_list, fr, counts_thr, area_list, subject, area, mode, mode_seed, pseudo_seed, split,
+    shuffle_range, [overwrite] """
     args_version = sys.argv[1:]
-
     # args_version = ['job_id=0', 'overwrite=True']
-
-    # load analysis parameters
     version = job_scheduler(args_version, args_from_parse_func)
 
     classifier = ClassificationAnalysis(DataBase([]), version)
@@ -98,7 +96,7 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    for split, shuffle_range in [('StratifiedBalanceSplit_StimHalf', '1_400'), ('StratifiedBalanceSplit', '1_200')]:
+    for split, shuffle_range in [('StratifiedBalanceSplit_StimHalf', '1_351')]:
         for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
             args_class_list = ['class_list=Stimulus_GatedStimulus']
             args_balance = ['balance_list=StageGatingPrePostMemory_StageGatingPrePostSensory']

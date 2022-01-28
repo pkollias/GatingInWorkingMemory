@@ -322,6 +322,16 @@ def anova_version_aov_params(version_aov, version_fr):
                            'arg': 'S00'}]
         group_column_list = []
         x_factors = [x_a]
+    elif version_aov == 'GatedCue':
+        selection_dict = {'column': 'GatingCondSpecialized',
+                          'list': ['Cue', 'PreDist', 'Gating', 'PostDist', 'Target']}
+        x_a = 'RuleCueCategory'
+        levels_dict = {x_a: ['C11', 'C12', 'C21', 'C22']}
+        event_cnj_mask = [{'column': 'StageStimSpecialized',
+                           'wrapper': pd.Series.ne,
+                           'arg': 'S00'}]
+        group_column_list = ['RuleGroup']
+        x_factors = [x_a]
     elif version_aov == 'NullGatedStimulus':
         selection_dict = {'column': 'GatingCondSpecialized',
                           'list': ['PreDist', 'PostDist']}

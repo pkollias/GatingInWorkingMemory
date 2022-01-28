@@ -3,15 +3,9 @@ from rec_analyses import *
 
 
 def main():
-
+    """ factor, fr, counts_thr, area_list, subject, [overwrite] """
     args_version = sys.argv[1:]
-
-    """ factor=, fr=, counts_thr=, area_list=, subject=, [overwrite=] """
-    # args_version = ['factor=StimulusGatingPreBool', 'fr=ConcatFactor2', 'counts_thr=15',
-    #                 'area_list=PFC_Stri', 'subject=Gonzo_Oscar']
     # args_version = ['job_id=0', 'overwrite=True']
-
-    # load analysis parameters
     version = job_scheduler(args_version, args_from_parse_func)
 
     # create analysis object

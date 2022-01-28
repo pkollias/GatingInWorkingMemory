@@ -40,9 +40,8 @@ def pbt_from_behavioral_units(condition_columns: list, version_fr: str, behavior
     return pbt
 
 
-def fbt_df_from_PCA(X_factor: np.ndarray, records, decomp_obj, timebin_interval):
+def fbt_df_from_PCA(X_factor: np.ndarray, records, num_factors, timebin_interval):
     records_df = pd.DataFrame(records)
-    num_factors = decomp_obj.n_components_
     num_conditions = records_df['Condition'].nunique()
     num_instances = records_df['Instance'].nunique()
     num_timebins = timebin_interval.num_of_bins()
@@ -54,9 +53,8 @@ def fbt_df_from_PCA(X_factor: np.ndarray, records, decomp_obj, timebin_interval)
     return records_base_df
 
 
-def fbt_df_from_dPCA(X_factor: np.ndarray, records, decomp_obj, timebin_interval):
+def fbt_df_from_dPCA(X_factor: np.ndarray, records, num_factors, timebin_interval):
     records_df = pd.DataFrame(records)
-    num_factors = decomp_obj.n_components
     num_conditions = records_df['Condition'].nunique()
     num_instances = records_df['Instance'].nunique()
     num_timebins = timebin_interval.num_of_bins()

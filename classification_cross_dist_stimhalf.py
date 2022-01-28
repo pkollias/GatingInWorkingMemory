@@ -1,9 +1,10 @@
 import sys
 from rec_analyses import *
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+# from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
-def main():""" class_list, balance_list, fr, counts_thr, area_list, subject, area, mode, mode_seed, pseudo_seed, split,
-    classifier_ind, split_split_ind, shuffle, pbt_src, [overwrite] """
+def main():
+    """ class_list, balance_list, fr, counts_thr, area_list, subject, area, mode, mode_seed, pseudo_seed, split,
+        classifier_ind, split_split_ind, shuffle, [overwrite] """
     args_version = sys.argv[1:]
     # args_version = ['job_id=0', 'overwrite=True']
     version = job_scheduler(args_version, args_from_parse_func)
@@ -53,8 +54,7 @@ def main():""" class_list, balance_list, fr, counts_thr, area_list, subject, are
     # overwrite check
     stem = (*classifier_list[0].get_train_test_stem(),
             'intermediate',
-            '_'.join([class_train.version['class'], train_key_abstract, class_test.version['class'], test_key_abstract]),
-            'pca' if version['pbt_src'] == 'pca' else '')  ### 2GROUP
+            '_'.join([class_train.version['class'], train_key_abstract, class_test.version['class'], test_key_abstract]))  ### 2GROUP
     fname = 'cv_score' if not int(version['shuffle']) else 'cv_score_{0:04d}'.format(int(version['shuffle']))
     target_filename = classifier_list[0].get_path_base(fname, stem, cross=True)
     print(target_filename, file=sys.stdout)
@@ -62,31 +62,10 @@ def main():""" class_list, balance_list, fr, counts_thr, area_list, subject, are
         exit()
 
     # load pbt and crop timeseries
-    if version['pbt_src'] == 'units':
-        pbt_train = md_train.np_loader(class_train.get_path_base('pbt', class_train.get_assemble_stem()))
-        pbt_test = md_test.np_loader(class_test.get_path_base('pbt', class_test.get_assemble_stem()))
-    elif version['pbt_src'] == 'pca':
-        _, pca = md_train.np_loader(class_train.get_path_base('pca', class_train.get_assemble_stem(), cross=True))
-        n_components = next(ind for ind, x in enumerate(pca.explained_variance_ratio_.cumsum()) if x > 2/3)
-
-        # train
-        fname = 'fbt'
-        stem_train = tuple(list(class_train.get_assemble_stem()) + \
-                     ['_'.join([class_train.version[key] for key in ['class', 'balance']])])
-        pbt_train = md_train.np_loader(class_train.get_path_base(fname, stem_train, cross=True))
-        # test
-        stem_test = tuple(list(class_test.get_assemble_stem()) + \
-                     ['_'.join([class_test.version[key] for key in ['class', 'balance']])])
-        pbt_test = md_test.np_loader(class_test.get_path_base(fname, stem_test, cross=True))
-        #reduce dims
-        X_inds_array_train_test_train = X_inds_array_train_test_train[:, :n_components]
-        pbt_train.df = pbt_train.df.loc[pbt_train.df['Factor'].lt(n_components)]
-        X_inds_array_train_test_test = X_inds_array_train_test_test[:, :n_components]
-        pbt_test.df = pbt_test.df.loc[pbt_test.df['Factor'].lt(n_components)]
-
+    pbt_train = md_train.np_loader(class_train.get_path_base('pbt', class_train.get_assemble_stem()))
     pbt_train.crop_timeseries(-50, 1000)
+    pbt_test = md_test.np_loader(class_test.get_path_base('pbt', class_test.get_assemble_stem()))
     pbt_test.crop_timeseries(-50, 1000)
-
 
     # get time parameters
     t = pbt_train.timebin_interval.split_to_bins_offset()
@@ -118,7 +97,7 @@ def main():""" class_list, balance_list, fr, counts_thr, area_list, subject, are
                     test_inds = split_test_i[1]
                     X_test = pbt_test.to_pseudosession_firing_rate(X_inds_array_train_test_test, t_test_ind)[test_inds, :]
                     y_test = y_train_test_test[test_inds]
-                    score[t_train_ind, t_test_ind, split_ind, train_test_ii] = model.score(X_test, y_test)  ### 2GROUP
+                    score[t_train_ind, t_test_ind, split_ind, train_test_ii] = model.predict_log_proba(X_test), y_test)  ### 2GROUP
 
     cv_score = np.mean(score, axis=(2, 3))
     md_train.np_saver(cv_score, target_filename)
@@ -147,12 +126,11 @@ def args_from_parse_func(parse_version):
                                 args_classifier_ind = ['classifier_ind={0:d}_{1:d}'.format(*clasiifier_ind)]
                                 args_split_split_ind = ['split_split_ind={0:d}_{1:d}'.format(*split_split_ind)]
                                 args_shuffle = ['shuffle={0:02d}'.format(shuffle)]
-                                args_pbt_src = ['pbt_src=pca']
                                 args_version_list.extend(list(map(list, list(product(args_class_list, args_balance_list, args_fr, args_counts_thr,
                                                                                      args_area_list, args_subject, args_area,
                                                                                      args_mode, args_mode_seed, args_split,
                                                                                      args_classifier_ind, args_split_split_ind,
-                                                                                     args_pseudo_seed, args_shuffle, args_pbt_src)))))
+                                                                                     args_pseudo_seed, args_shuffle)))))
 
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():

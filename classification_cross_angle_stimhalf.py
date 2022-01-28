@@ -1,8 +1,10 @@
 import sys
 from rec_analyses import *
+from rec_stats import vector_angle
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
-def main():""" class_list, balance_list, fr, counts_thr, area_list, subject, area, mode, mode_seed, pseudo_seed, split,
+def main():
+    """ class_list, balance_list, fr, counts_thr, area_list, subject, area, mode, mode_seed, pseudo_seed, split,
     classifier_ind, split_split_ind, shuffle, pbt_src, [overwrite] """
     args_version = sys.argv[1:]
     # args_version = ['job_id=0', 'overwrite=True']
@@ -55,7 +57,7 @@ def main():""" class_list, balance_list, fr, counts_thr, area_list, subject, are
             'intermediate',
             '_'.join([class_train.version['class'], train_key_abstract, class_test.version['class'], test_key_abstract]),
             'pca' if version['pbt_src'] == 'pca' else '')  ### 2GROUP
-    fname = 'cv_score' if not int(version['shuffle']) else 'cv_score_{0:04d}'.format(int(version['shuffle']))
+    fname = 'angle'
     target_filename = classifier_list[0].get_path_base(fname, stem, cross=True)
     print(target_filename, file=sys.stdout)
     if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
@@ -65,6 +67,7 @@ def main():""" class_list, balance_list, fr, counts_thr, area_list, subject, are
     if version['pbt_src'] == 'units':
         pbt_train = md_train.np_loader(class_train.get_path_base('pbt', class_train.get_assemble_stem()))
         pbt_test = md_test.np_loader(class_test.get_path_base('pbt', class_test.get_assemble_stem()))
+        n_components = len(pbt_train.get_unit_inds())
     elif version['pbt_src'] == 'pca':
         _, pca = md_train.np_loader(class_train.get_path_base('pca', class_train.get_assemble_stem(), cross=True))
         n_components = next(ind for ind, x in enumerate(pca.explained_variance_ratio_.cumsum()) if x > 2/3)
@@ -84,16 +87,13 @@ def main():""" class_list, balance_list, fr, counts_thr, area_list, subject, are
         X_inds_array_train_test_test = X_inds_array_train_test_test[:, :n_components]
         pbt_test.df = pbt_test.df.loc[pbt_test.df['Factor'].lt(n_components)]
 
-    pbt_train.crop_timeseries(-50, 1000)
-    pbt_test.crop_timeseries(-50, 1000)
-
-
     # get time parameters
     t = pbt_train.timebin_interval.split_to_bins_offset()
     n_t = pbt_train.timebin_interval.num_of_bins()
     # for every timepoint build a training set of classifiers
 
-    score = np.empty((n_t, n_t, len(list(train_dict.values())[0]), 2))  ### 2GROUP
+    angle = np.empty((n_t, n_t, len(list(train_dict.values())[0]), 2))  ### 2GROUP
+    models = np.empty((n_t, len(list(train_dict.values())[0]), 2, n_components))  ### 2GROUP
 
     # for all iterations of the keys
     for train_test_ii, (train_key, test_key) in enumerate(zip(train_key_list, test_key_list)):  ### 2GROUP
@@ -112,16 +112,15 @@ def main():""" class_list, balance_list, fr, counts_thr, area_list, subject, are
                 model = LinearDiscriminantAnalysis(solver=solver, shrinkage=shrinkage)
                 model.fit(X_train, y_train)
 
-                # for every timepoint test against set of classifiers
+                models[t_train_ind, split_ind, train_test_ii, :] = model.coef_[0]
+
+            for t_train_ind, t_train_i in enumerate(t):
                 for t_test_ind, t_test_i in enumerate(t):
+                    angle[t_train_ind, t_test_ind, split_ind, train_test_ii] = vector_angle(models[t_train_ind, split_ind, train_test_ii, :],
+                                                                                            models[t_test_ind, split_ind, train_test_ii, :])
 
-                    test_inds = split_test_i[1]
-                    X_test = pbt_test.to_pseudosession_firing_rate(X_inds_array_train_test_test, t_test_ind)[test_inds, :]
-                    y_test = y_train_test_test[test_inds]
-                    score[t_train_ind, t_test_ind, split_ind, train_test_ii] = model.score(X_test, y_test)  ### 2GROUP
-
-    cv_score = np.mean(score, axis=(2, 3))
-    md_train.np_saver(cv_score, target_filename)
+    angle = np.nanmean(angle, axis=(2, 3))
+    md_train.np_saver(angle, target_filename)
 
 
 def args_from_parse_func(parse_version):

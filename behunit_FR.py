@@ -5,11 +5,14 @@ from rec_db import *
 from versioning import *
 
 def main():
+    """ u_iloc, fr, [overwrite] """
+    args_version = sys.argv[1:]
+    # args_version = ['job_id=0', 'overwrite=True']
+    version = job_scheduler(args_version, args_from_parse_func)
 
-    # parameters
-    args = sys.argv
-    u_iloc = int(args[1])
-    version_fr = args[2]
+    u_iloc = int(version['u_iloc'])
+    version_fr = version['fr']
+
     v_fr_params = version_fr_params(version_fr)
     t_start = v_fr_params['t_start']
     t_end = v_fr_params['t_end']
@@ -31,7 +34,7 @@ def main():
                                                   behunit_params_str(version_fr, timebin, timestep, t_start, t_end)),
                                         'behunit_FR_{0:s}_chan{1:03d}_unit{2:03d}.pkl'.format(sess, channum, unitnum))
     print(target_filename)
-    if path.exists(target_filename):
+    if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
         exit()
 
     trials_index = md.preproc_imports['trials']['index']
@@ -82,8 +85,22 @@ def main():
             timebin_fr_dict[event_entry.Index] = [session_spiketrain.slice_by_index(index_interval).firing_rate()
                                                   for index_interval in slice_fr_time_bins]
 
-
     md.np_saver(timebin_fr_dict, target_filename)
+
+
+def args_from_parse_func(parse_version):
+
+    args_version_list = []
+
+    args_u_iloc = ['u_iloc={0:d}'.format(u_iloc) for u_iloc in range(2436)]
+    args_fr = ['fr=ConcatFactor']
+    args_version_list.extend(list(map(list, list(product(args_u_iloc, args_fr)))))
+
+    args_version_from_job = args_version_list[int(parse_version['job_id'])]
+    if 'overwrite' in parse_version.keys():
+        args_version_from_job.append('overwrite={0:s}'.format(parse_version['overwrite']))
+
+    return args_version_from_job
 
 
 main()

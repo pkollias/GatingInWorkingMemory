@@ -2,17 +2,18 @@ import sys
 from rec import *
 from functools import reduce
 from rec_format import *
-from itertools import product
 from versioning import *
 
 
 def main():
+    """ u_iloc, aov, fr, [overwrite] """
+    args_version = sys.argv[1:]
+    # args_version = ['job_id=0', 'overwrite=True']
+    version = job_scheduler(args_version, args_from_parse_func)
 
-    # load analysis parameters
-    args = sys.argv
-    u_iloc = int(args[1])
-    version_aov = args[2]
-    version_fr = args[3]
+    u_iloc = int(version['u_iloc'])
+    version_aov = version['aov']
+    version_fr = version['fr']
 
     valid_thr = 15
 
@@ -46,7 +47,7 @@ def main():
                                         'selection_dict_{0:s}_chan{1:03d}_unit{2:03d}.pkl'.
                                         format(sess, channum, unitnum))
     print(target_filename)
-    if path.exists(target_filename):
+    if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
         exit()
 
     # load unit firing rate data
@@ -124,5 +125,21 @@ def main():
                             'num_events': num_events,
                             'valid': valid}
     md.np_saver(anova_selection_dict, target_filename)
+
+
+def args_from_parse_func(parse_version):
+
+    args_version_list = []
+
+    args_u_iloc = ['u_iloc={0:d}'.format(u_iloc) for u_iloc in range(2436)]
+    args_aov = ['aov={0:s}'.format(aov) for aov in ['GatedCue']]
+    args_fr = ['fr=ConcatFactor']
+    args_version_list.extend(list(map(list, list(product(args_u_iloc, args_aov, args_fr)))))
+
+    args_version_from_job = args_version_list[int(parse_version['job_id'])]
+    if 'overwrite' in parse_version.keys():
+        args_version_from_job.append('overwrite={0:s}'.format(parse_version['overwrite']))
+
+    return args_version_from_job
 
 main()
