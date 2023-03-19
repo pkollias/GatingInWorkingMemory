@@ -99,7 +99,7 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    for split, shuffle_range in [('StratifiedBalanceSplit_StimHalf', '1_151')]: #351
+    for split, shuffle_range in [('StratifiedBalanceSplit_StimHalf', '1_101')]: #351
         for area_list, area in [('PFC', 'PFC')]: #Stri, IT
             args_class_list = ['class_list=Stimulus_GatedStimulus']
             args_balance = ['balance_list=StageGatingPrePostMemory_StageGatingPrePostSensory']
@@ -109,10 +109,10 @@ def args_from_parse_func(parse_version):
             args_subject = ['subject=Gonzo_Oscar']
             args_area = ['area={0:s}'.format(area)]
             args_mode = ['mode=Normal']
-            args_mode_seed = ['mode_seed=1']
+            args_mode_seed = ['mode_seed=0']
             args_split = ['split=StratifiedBalanceSplit_StimHalf']
             args_pseudo_seed = ['pseudo_seed=0']
-            args_train_t = ['train_t=all'] # crossbing
+            args_train_t = ['train_t=crossbin']
             args_shuffle_range = ['shuffle_range={0:s}'.format(shuffle_range)]
             args_version_list.extend(list(map(list, list(product(args_class_list, args_balance, args_fr, args_counts_thr,
                                                                  args_area_list, args_subject, args_area, args_mode,

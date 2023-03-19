@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 from rec_utils import *
 import math
 from matplotlib.lines import Line2D
+from itertools import chain
 
 def selectivity_count_plot(subject_list, version_aov, version_fr, selection_list, area_list):
 
@@ -193,26 +194,21 @@ def selectivity_counts(subject_list, version_aov, version_fr, area, selection_li
 
 
 
-def selectivity_count_intersectional_plot(subject_list, version_aov, version_fr, selection_list, area_list):
+def selectivity_count_intersectional_plot(subject_list, version_aov, version_fr, selection_list, area_list, toi):
 
     # subject_list = ['Oscar', 'Gonzo']
     # version_aov = 'PresentedStimulus'
     # version_fr = 'ConcatFactor'
-    # selection_list = ['PreDist', 'Gating', 'PostDist', 'Target']
+    # selection_list = ['PreDist', 'Gating', 'PostDist']
     # area_list = ['PFC']
     # ylim_arg = None
     # title = ''
+    # toi = None
 
     # version parameters
     v_aov_params = anova_version_aov_params(version_aov, version_fr)
     x_factors = v_aov_params['x_factors']
     x_cluster_label = x_factors[0]
-
-    v_fr_params = version_fr_params(version_fr)
-    t_start = v_fr_params['t_start']
-    t_end = v_fr_params['t_end']
-    timebin = v_fr_params['timebin']
-    timestep = v_fr_params['timestep']
 
     # init
     md = MetaData()
@@ -239,7 +235,13 @@ def selectivity_count_intersectional_plot(subject_list, version_aov, version_fr,
     valid_inds = set.intersection(*[set([unit_ind for unit_ind, unit in selection_dict.items() if unit[x_cluster_label]['valid']]) for selection_dict in physiology_dict.values()])
     filtered_valid_inds = set.intersection(filtered_inds, valid_inds)
 
-    selective_per_selection_inds = dict([(selection, set([unit_ind for unit_ind, unit in selection_dict.items() if bool(unit[x_cluster_label]['clusters'])]).intersection(filtered_valid_inds)) for selection, selection_dict in physiology_dict.items() if selection in selection_list])
+    def cluster_within_timerange(cluster_list, timerange):
+        if timerange is None or (type(cluster_list) is not list and np.isnan(cluster_list)):
+            return bool(cluster_list)
+        else:
+            return any([timerange[0] <= el <= timerange[1] for el in list(chain(*cluster_list))])
+
+    selective_per_selection_inds = dict([(selection, set([unit_ind for unit_ind, unit in selection_dict.items() if cluster_within_timerange(unit[x_cluster_label]['clusters'], toi)]).intersection(filtered_valid_inds)) for selection, selection_dict in physiology_dict.items() if selection in selection_list])
     selective_population_inds = set.union(*[selection_ind for selection_ind in selective_per_selection_inds.values()])
     units_per_area_inds = dict([(area, set(units.loc[units['Area'].eq(area)].index).intersection(filtered_valid_inds)) for area in area_list])
 
@@ -257,6 +259,18 @@ def selectivity_count_intersectional_plot(subject_list, version_aov, version_fr,
         ax[area] = intersectional_pie([units_per_area_inds[area], selective_inds['PreDist'], selective_inds['Gating'], selective_inds['PostDist']],
                                       legend_show=True if area == 'PFC' else False, title_str=area)
 
+    # OR INSTEAD
+    # fig, ax = plt.subplots(1, 2, figsize=(10, 5))
+    # title = ['Early (250-750ms)', 'Late (750-950ms)']
+    # for toi, ax_i, title_i in zip([(100, 600), (600, 800)], ax, title):
+    #     [...]
+    #     for ii in range(5):
+    #         venn3([selective_inds['Gating'], selective_inds['PostDist'], selective_inds['PreDist']],
+    #               set_labels=['Gating', 'PostDist', 'PreDist'],
+    #               set_colors=['#3c3a7a', '#e08e4f', '#dbb356'], ax=ax_i)
+    #     ax_i.set_title(title_i)
+    # fig.suptitle('Selectivity to Sensory Information on different time splits')
+
     return ax
 
 
@@ -264,7 +278,7 @@ def intersectional_pie(set_list, title_str='', legend_show=False, R=1):
 
     pi = math.pi
     # 0:abc, 1:ab, 2:ac, 3:bc, 4:a, 5:b, 6:c, 7:null
-    color_list = ['#eeeeee', '#5a914a', '#9c7038', '#754085', '#dbb356', '#3c3a7a', '#e08e4f', '#404040']
+    color_list = ['#404040', '#5a914a', '#9c7038', '#754085', '#dbb356', '#3c3a7a', '#e08e4f', '#efefef']
     label_list = ['All', 'PreDist-Gating', 'PreDist-PostDist', 'Gating-PostDist', 'PreDist', 'Gating', 'PostDist', 'None']
     color_xy = itemgetter(4, 2, 6, 3, 5, 1)(color_list)
 

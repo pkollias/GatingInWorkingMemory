@@ -132,3 +132,4 @@ IO/
 environment.py
 *.sh
 *.png
+/figures

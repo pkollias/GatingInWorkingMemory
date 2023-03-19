@@ -2,7 +2,8 @@ import sys
 from rec_analyses import *
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
 
-def main():""" class_list, balance_list, fr, counts_thr, area_list, subject, area, mode, mode_seed, pseudo_seed, split,
+def main():
+    """ class_list, balance_list, fr, counts_thr, area_list, subject, area, mode, mode_seed, pseudo_seed, split,
     classifier_ind, split_split_ind, shuffle, pbt_src, [overwrite] """
     args_version = sys.argv[1:]
     # args_version = ['job_id=0', 'overwrite=True']
@@ -133,26 +134,27 @@ def args_from_parse_func(parse_version):
             for clasiifier_ind in product(range(2), range(2)):
                 for split_split_ind in product(range(3), range(3)):
                     for shuffle in range(1):
-                        for area_list in ['PFC', 'Stri', 'IT']:
-                            for area in area_list.split('_'):
-                                args_fr = ['fr=ConcatFactor2']
-                                args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
-                                args_area_list = ['area_list={0:s}'.format(area_list)]
-                                args_subject = ['subject=Gonzo_Oscar']
-                                args_area = ['area={0:s}'.format(area)]
-                                args_mode = ['mode=Normal']
-                                args_mode_seed = ['mode_seed=0']
-                                args_pseudo_seed = ['pseudo_seed=0']
-                                args_split = ['split=StratifiedBalanceSplit_StimHalf']  # ['split=StratifiedBalanceSplit', 'split=StratifiedBalanceSplit_StimHalf']
-                                args_classifier_ind = ['classifier_ind={0:d}_{1:d}'.format(*clasiifier_ind)]
-                                args_split_split_ind = ['split_split_ind={0:d}_{1:d}'.format(*split_split_ind)]
-                                args_shuffle = ['shuffle={0:02d}'.format(shuffle)]
-                                args_pbt_src = ['pbt_src=pca']
-                                args_version_list.extend(list(map(list, list(product(args_class_list, args_balance_list, args_fr, args_counts_thr,
-                                                                                     args_area_list, args_subject, args_area,
-                                                                                     args_mode, args_mode_seed, args_split,
-                                                                                     args_classifier_ind, args_split_split_ind,
-                                                                                     args_pseudo_seed, args_shuffle, args_pbt_src)))))
+                        for mode_seed in range(2000):
+                            for area_list in ['PFC']:
+                                for area in area_list.split('_'):
+                                    args_fr = ['fr=ConcatFactor2']
+                                    args_counts_thr = ['counts_thr={0:s}'.format(counts_thr)]
+                                    args_area_list = ['area_list={0:s}'.format(area_list)]
+                                    args_subject = ['subject=Gonzo_Oscar']
+                                    args_area = ['area={0:s}'.format(area)]
+                                    args_mode = ['mode=Normal']
+                                    args_mode_seed = ['mode_seed={0:04d}'.format(mode_seed)]
+                                    args_pseudo_seed = ['pseudo_seed=0']
+                                    args_split = ['split=StratifiedBalanceSplit_StimHalf']  # ['split=StratifiedBalanceSplit', 'split=StratifiedBalanceSplit_StimHalf']
+                                    args_classifier_ind = ['classifier_ind={0:d}_{1:d}'.format(*clasiifier_ind)]
+                                    args_split_split_ind = ['split_split_ind={0:d}_{1:d}'.format(*split_split_ind)]
+                                    args_shuffle = ['shuffle={0:02d}'.format(shuffle)]
+                                    args_pbt_src = ['pbt_src=units']
+                                    args_version_list.extend(list(map(list, list(product(args_class_list, args_balance_list, args_fr, args_counts_thr,
+                                                                                         args_area_list, args_subject, args_area,
+                                                                                         args_mode, args_mode_seed, args_split,
+                                                                                         args_classifier_ind, args_split_split_ind,
+                                                                                         args_pseudo_seed, args_shuffle, args_pbt_src)))))
 
     args_version_from_job = args_version_list[int(parse_version['job_id'])]
     if 'overwrite' in parse_version.keys():

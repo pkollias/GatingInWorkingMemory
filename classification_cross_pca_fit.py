@@ -1,7 +1,6 @@
 import sys
 from rec_analyses import *
 from sklearn.pipeline import Pipeline
-from sklearn.decomposition import PCA
 from rec_utils import fbt_df_from_PCA
 
 def main():
@@ -40,7 +39,7 @@ def main():
 
     # conduct pca on combined pbts
     pbt = pbt_list[0].init_with_df(pd.concat([pbt_i.df for pbt_i in pbt_list]))
-    X, records = pbt.average_instances(['Unit', 'Condition']).to_PCA_array() if version['pca_mode'] == 'mean' else pbt.to_PCA_array()
+    X, records = pbt.average_instances(['Unit', 'Unit_Code', 'Condition']).to_PCA_array() if version['pca_mode'] == 'mean' else pbt.to_PCA_array()
     scaler = StandardScaler()
     X_sc = scaler.fit_transform(X)
     pca = PCA()

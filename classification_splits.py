@@ -18,6 +18,7 @@ def main():
 
     X_inds_array = pseudosession_inds_array
     y = class_array
+
     train_test = classifier.get_train_test_splits_list(pbt)
 
     md.np_saver((X_inds_array, y), classifier.get_path_base('X_y', classifier.get_pseudo_session_stem()))
@@ -28,7 +29,7 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
+    for area_list, area in [('PFC', 'PFC')]: #, ('Stri', 'Stri'), ('IT', 'IT')]:
         for class_i, balance in [('Stimulus', 'StageGatingPrePostMemory'), ('GatedStimulus', 'StageGatingPrePostSensory')]:
             args_class = ['class={0:s}'.format(class_i)]
             args_balance = ['balance={0:s}'.format(balance)]
@@ -38,12 +39,14 @@ def args_from_parse_func(parse_version):
             args_subject = ['subject=Gonzo_Oscar']
             args_area = ['area={0:s}'.format(area)]
             args_mode = ['mode=Normal']
-            args_mode_seed = ['mode_seed=0']
+            args_mode_seed = ['mode_seed={0:d}'.format(ms) for ms in range(0, 1000)]
             args_pseudo_seed = ['pseudo_seed={0:d}'.format(ps_i) for ps_i in range(1)]
             args_split = ['split=StratifiedBalanceSplit_StimHalf']
+            args_split_counts = ['split_counts={0:s}'.format(split_counts_str) for split_counts_str in ['4_1_1', '4_2_1', '4_3_1', '3_2_1']]
             args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
                                                                  args_area_list, args_subject, args_area, args_mode,
-                                                                 args_mode_seed, args_pseudo_seed, args_split)))))
+                                                                 args_mode_seed, args_pseudo_seed,
+                                                                 args_split, args_split_counts)))))
 
     # args_version_list = []
     #

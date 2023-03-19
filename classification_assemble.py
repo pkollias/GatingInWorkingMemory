@@ -15,8 +15,8 @@ def main():
     # overwrite check
     target_filename = classifier.get_path_base('pbt', classifier.get_assemble_stem())
     print(target_filename)
-    if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
-        exit()
+    # if path.exists(target_filename) and ('overwrite' not in version.keys() or not eval(version['overwrite'])):
+    #     exit()
 
     # create unit selection filters
     behavioral_units_filter = md.np_loader(classifier.get_path_base('filter', classifier.get_filter_stem()))
@@ -71,44 +71,44 @@ def main():
 
     pbt = pbt_from_behavioral_units(condition_columns, version['fr'], behavioral_units, db)
 
-    md.np_saver(pbt, target_filename)
+    # md.np_saver(pbt, target_filename)
 
 
 def args_from_parse_func(parse_version):
 
-    args_version_list = []
-
-    for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
-        args_class = ['class=GatingPreBoolGeneralizedCue']
-        args_balance = ['balance=None']
-        args_fr = ['fr=ConcatFactor2']
-        args_counts_thr = ['counts_thr={0:s}'.format(counts_thr) for counts_thr in ['1']]
-        args_area_list = ['area_list={0:s}'.format(area_list)]
-        args_subject = ['subject=Gonzo_Oscar']
-        args_area = ['area={0:s}'.format(area)]
-        args_mode = ['mode=Normal']
-        args_mode_seed = ['mode_seed={0:s}'.format(mode_seed) for mode_seed in [str(ms) for ms in range(10)]]
-        args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
-                                                             args_area_list, args_subject, args_area,
-                                                             args_mode, args_mode_seed)))))
-
     # args_version_list = []
     #
     # for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri'), ('IT', 'IT')]:
-    #     for class_i, balance in [('Stimulus', 'StageGatingPrePostMemory'), ('Stimulus', 'StageGatingCenteredMemory'),
-    #                              ('GatedStimulus', 'StageGatingPrePostSensory'), ('GatedStimulus', 'StageGatingCenteredSensory')]:
-    #         args_class = ['class={0:s}'.format(class_i)]
-    #         args_balance = ['balance={0:s}'.format(balance)]
-    #         args_fr = ['fr=ConcatFactor2']
-    #         args_counts_thr = ['counts_thr=12']
-    #         args_area_list = ['area_list={0:s}'.format(area_list)]
-    #         args_subject = ['subject=Gonzo_Oscar']
-    #         args_area = ['area={0:s}'.format(area)]
-    #         args_mode = ['mode=Normal']
-    #         args_mode_seed = ['mode_seed=0']
-    #         args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
-    #                                                              args_area_list, args_subject, args_area,
-    #                                                              args_mode, args_mode_seed)))))
+    #     args_class = ['class=GatingPreBoolGeneralizedCue']
+    #     args_balance = ['balance=None']
+    #     args_fr = ['fr=ConcatFactor2']
+    #     args_counts_thr = ['counts_thr={0:s}'.format(counts_thr) for counts_thr in ['1']]
+    #     args_area_list = ['area_list={0:s}'.format(area_list)]
+    #     args_subject = ['subject=Gonzo_Oscar']
+    #     args_area = ['area={0:s}'.format(area)]
+    #     args_mode = ['mode=Normal']
+    #     args_mode_seed = ['mode_seed={0:s}'.format(mode_seed) for mode_seed in [str(ms) for ms in range(10)]]
+    #     args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+    #                                                          args_area_list, args_subject, args_area,
+    #                                                          args_mode, args_mode_seed)))))
+
+    args_version_list = []
+
+    for area_list, area in [('PFC', 'PFC')]: #, ('Stri', 'Stri'), ('IT', 'IT')]:
+        for class_i, balance in [('Stimulus', 'StageGatingPrePostMemory'), #, ('Stimulus', 'StageGatingCenteredMemory'),
+                                 ('GatedStimulus', 'StageGatingPrePostSensory')]: #, ('GatedStimulus', 'StageGatingCenteredSensory')]:
+            args_class = ['class={0:s}'.format(class_i)]
+            args_balance = ['balance={0:s}'.format(balance)]
+            args_fr = ['fr=ConcatFactor2']
+            args_counts_thr = ['counts_thr=12']
+            args_area_list = ['area_list={0:s}'.format(area_list)]
+            args_subject = ['subject=Gonzo_Oscar']
+            args_area = ['area={0:s}'.format(area)]
+            args_mode = ['mode=Normal']
+            args_mode_seed = ['mode_seed={0:d}'.format(ms) for ms in range(0, 1000)]
+            args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr,
+                                                                 args_area_list, args_subject, args_area,
+                                                                 args_mode, args_mode_seed)))))
 
     # for area_list, area in [('PFC', 'PFC'), ('Stri', 'Stri')]:
     #     for session in range(42):

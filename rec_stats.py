@@ -46,7 +46,7 @@ def coords_list_to_mask(coords_list, mask_shape):
 
     mask = np.empty(mask_shape, dtype=bool)
     mask[:, :] = True
-    mask[list(zip(*coords_list))] = False
+    mask[tuple(zip(*coords_list))] = False
 
     return mask
 

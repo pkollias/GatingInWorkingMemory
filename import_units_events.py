@@ -1,4 +1,4 @@
-from rec import *
+ from rec import *
 
 
 def main():

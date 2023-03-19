@@ -30,13 +30,23 @@ def args_from_parse_func(parse_version):
 
     args_version_list = []
 
-    args_class = ['class=GatingPreBoolGeneralizedCue']
-    args_balance = ['balance=Cue']
+    args_class = ['class=Stimulus']
+    args_balance = ['balance=StageGatingPrePostMemory']
     args_fr = ['fr=ConcatFactor2']
-    args_counts_thr = ['counts_thr=1']
+    args_counts_thr = ['counts_thr=12']
     args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
 
-    # args_version_list = []
+    args_class = ['class=GatedStimulus']
+    args_balance = ['balance=StageGatingPrePostSensory']
+    args_fr = ['fr=ConcatFactor2']
+    args_counts_thr = ['counts_thr=12']
+    args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
+
+    # args_class = ['class=GatingPreBoolGeneralizedCue']
+    # args_balance = ['balance=Cue']
+    # args_fr = ['fr=ConcatFactor2']
+    # args_counts_thr = ['counts_thr=1']
+    # args_version_list.extend(list(map(list, list(product(args_class, args_balance, args_fr, args_counts_thr)))))
     #
     # args_class = ['class=GatingPreBool']
     # args_balance = ['balance=Stimulus']

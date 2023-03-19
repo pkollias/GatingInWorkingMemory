@@ -315,12 +315,12 @@ class PopulationBehavioralTimeseries:
         index_list = [index for _, group in grouper for index in group.index]
         # create pre_pca unit, condition, instance, timebin array
         X_preshape = (num_units, num_conditions, num_instances, num_timebins)
-        X_pre = np.array(df_base.iloc[index_list]['Timeseries'].tolist()).reshape(X_preshape)
+        X_pre = np.array(df_base.loc[index_list]['Timeseries'].tolist()).reshape(X_preshape) ### loc or iloc TODO
         # convert to pca array format
         X_shape = (num_conditions * num_instances * num_timebins, num_units)
         X = X_pre.transpose(1, 2, 3, 0).reshape(X_shape)
         # unit, condition, instance information for reconstruction
-        records = df_base.iloc[index_list][['Unit', 'Condition', 'Instance']].to_records()
+        records = df_base.loc[index_list][['Unit', 'Condition', 'Instance']].to_records()  ### loc or iloc TODO
         return X, records
 
     def to_PCA_scale_array(self):
@@ -399,6 +399,12 @@ class PseudoPopulationBehavioralTimeseries(PopulationBehavioralTimeseries):
         self.condition_labels = [] if not bool(condition_labels) else condition_labels
         self.timebin_interval = timebin_interval
 
+    def init_with_df(self, df):
+        pbt = PseudoPopulationBehavioralTimeseries(condition_labels=self.condition_labels,
+                                                   timebin_interval=self.timebin_interval,
+                                                   df=df)
+        return pbt
+
     def add_data_row(self, unit_ind, unit_code, event_ind, condition, instance, timeseries, index=None):
         row_data_df = pd.DataFrame.from_dict({index: [unit_ind, unit_code, event_ind, condition, instance, timeseries]},
                                              columns=self.base_columns,
@@ -426,12 +432,12 @@ class PseudoPopulationBehavioralTimeseries(PopulationBehavioralTimeseries):
         index_list = [index for _, group in grouper for index in group.index]
         # create pre_pca unit, condition, instance, timebin array
         X_preshape = (num_units, num_conditions, num_instances, num_timebins)
-        X_pre = np.array(df_base.iloc[index_list]['Timeseries'].tolist()).reshape(X_preshape)
+        X_pre = np.array(df_base.loc[index_list]['Timeseries'].tolist()).reshape(X_preshape) ### loc or iloc TODO
         # convert to pca array format
         X_shape = (num_conditions * num_instances * num_timebins, num_units)
         X = X_pre.transpose(1, 2, 3, 0).reshape(X_shape)
         # unit, condition, instance information for reconstruction
-        records = df_base.iloc[index_list][['Unit', 'Unit_Code', 'Condition', 'Instance']].to_records()
+        records = df_base.loc[index_list][['Unit', 'Unit_Code', 'Condition', 'Instance']].to_records() ### loc or iloc TODO
         return X, records
 
     def to_dPCA_mean_array(self): pass
@@ -449,8 +455,8 @@ class FactorBehavioralTimeseries(PopulationBehavioralTimeseries):
         self.timebin_interval = timebin_interval
 
     def init_with_df(self, df):
-        pbt = PopulationBehavioralTimeseries(condition_labels=self.condition_labels,
-                                             timebin_interval=self.timebin_interval)
+        pbt = FactorBehavioralTimeseries(condition_labels=self.condition_labels,
+                                         timebin_interval=self.timebin_interval)
         pbt.df = df
         return pbt
 
@@ -468,7 +474,6 @@ class FactorBehavioralTimeseries(PopulationBehavioralTimeseries):
         df_average.reset_index(drop=False, inplace=True)
         return FactorBehavioralTimeseries(df_average, self.condition_labels, self.timebin_interval)
 
-    def init_with_df(self): pass
     def get_unit_inds(self): pass
     def get_unit_slice(self): pass
     def add_data_row(self): pass
@@ -616,6 +621,12 @@ class ClassificationAnalysis(Analysis):
         else:
             return []
 
+
+    def parse_split_counts(self) -> list:
+        split_counts_str = self.version['split_counts']
+        return [int(el) for el in split_counts_str.split('_')]
+
+
     def generate_pseudoarray_inds(self, pbt: PopulationBehavioralTimeseries, seed) -> tuple(np.ndarray, np.ndarray):
 
         # TODO: revisit - bad coding
@@ -655,6 +666,26 @@ class ClassificationAnalysis(Analysis):
         class_array = np.array(class_codes)
 
         return pseudoarray_inds, class_array
+
+
+    def multiple_stratified_splits(self, split, random_state_object, vals, indices, stratify, proportions):
+        # Return immediately if there are fewer than 2 proportions use in splits
+        if len(proportions) <= 1:
+            split.append(np.random.permutation(vals[indices]))
+            return split
+        # Determine proportion of items to extract for this split and associated
+        # indexes for that proportion of the items (and add to final result)
+        p = proportions[0]
+        indices_picked = train_test_split(indices, stratify=stratify[indices], train_size=p, random_state=get_seed(random_state_object))[0]
+        split.append(vals[indices_picked])
+        # Recurse with this split removed from indexes and proportions rescaled
+        # to reflect the fraction of items in the subset equivalent to the desired
+        # fraction in the original set
+        indices = np.setdiff1d(indices, indices_picked)
+        proportions = (1. / (1 - p)) * proportions[1:]
+        random_state_object = (random_state_object[0], random_state_object[1] + 1)
+        return self.multiple_stratified_splits(split, random_state_object, vals, indices, stratify, proportions)
+
 
     def get_train_test_splits_list(self, pbt: PopulationBehavioralTimeseries):
 
@@ -718,11 +749,20 @@ class ClassificationAnalysis(Analysis):
                 condition_stratify = np.tile(np.arange(int((num_classes * np.product(num_values_to_ignore)) / 2)),
                                              (instances_per_condition, 1)).transpose().reshape(-1)
 
-            train_test = {condition: [train_test_split(group_split, train_size=2 / 3,
-                                                       stratify=condition_stratify, random_state=ii)
-                                      for ii in range(20)]
-                          for cond_ind, (condition, group_split)
-                          in enumerate(zip(conditions_to_split, group_splits))}
+            train_test = {}
+            for cond_ind, (condition, group_split) in enumerate(zip(conditions_to_split, group_splits)):
+                train_test[condition] = []
+                for ii in range(20):
+                    multiple_splits = []
+                    indices = np.arange(len(group_split))
+                    split_counts = self.parse_split_counts()
+                    proportions = np.ones(split_counts[0]) / split_counts[0]
+                    self.multiple_stratified_splits(multiple_splits, (ii, 0), group_split, indices, condition_stratify, proportions)
+
+                    train = [el for subsplit in multiple_splits[:split_counts[1]] for el in subsplit]
+                    test = [el for subsplit in multiple_splits[-split_counts[2]:] for el in subsplit]
+                    multiple_split_parsed = [np.asarray(train), np.asarray(test)]
+                    train_test[condition].append(multiple_split_parsed)
 
         return train_test
 
@@ -755,10 +795,15 @@ class ClassificationAnalysis(Analysis):
         return 'wrangle'
 
     def get_assemble_stem(self) -> Union[str, tuple]:
+        mode_seed_str = '{0:03d}'.format(int(self.version['mode_seed'])) if \
+                                ('mode_seed' in self.version.keys() and '_' not in self.version['mode_seed']) \
+                        else self.version['mode_seed'] if \
+                                ('mode_seed' in self.version.keys() and '_' in self.version['mode_seed']) \
+                        else self.version['mode_seed_range']
         area_list_str = list_param_to_str(self.version['area_list'])
         subject_str = list_param_to_str(self.version['subject'])
         return ('exec', '_'.join([area_list_str, subject_str]), self.version['area'],
-                '_'.join([self.version['mode'], '{0:03d}'.format(int(self.version['mode_seed']))]))
+                '_'.join([self.version['mode'], mode_seed_str]))
 
     def get_train_stem(self) -> Union[str, tuple]:
         return (*self.get_assemble_stem(), 'train')
@@ -767,7 +812,8 @@ class ClassificationAnalysis(Analysis):
         return (*self.get_train_stem(), 'pseudo_session_{0:03d}'.format(int(self.version['pseudo_seed'])))
 
     def get_train_test_stem(self) -> Union[str, tuple]:
-        return (*self.get_pseudo_session_stem(), 'train_test', 'split_{0:s}'.format(self.version['split']))
+        return (*self.get_pseudo_session_stem(), 'train_test',
+                'split_{0:s}', 'split_counts_{0:s}'.format(self.version['split']), self.version['split_counts'])
 
     def get_filter_session_stem(self) -> Union[str, tuple]:
         area_list_str = list_param_to_str(self.version['area_list'])

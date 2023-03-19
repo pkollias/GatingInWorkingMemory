@@ -24,6 +24,7 @@ def pbt_from_behavioral_units(condition_columns: list, version_fr: str, behavior
         bufr = BehavioralUnitFiringRate(db, {'fr': version_fr}, unit_ind)
         # group by condition
         bu_cond_grouper = unit_group.groupby(condition_columns)
+        print(unit_ind_code)
         # for every condition
         for condition, cond_group in bu_cond_grouper:
             # for every event

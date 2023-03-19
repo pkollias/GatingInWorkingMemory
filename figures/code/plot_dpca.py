@@ -123,7 +123,7 @@ def dpca_state_space_plot(version, margin_dim_list, condition_list_slice=False, 
             ax.spines['right'].set_visible(False)
 
     ax1 = ax
-    plt.savefig(path.join('figures', 'dPCA', '{0:s}.png'.format(ver_str)), format='png')
+    plt.savefig(path.join('figures', 'dPCA', '{0:s}.pdf'.format(ver_str)), format='pdf')
     # plt.close()
 
 
@@ -131,92 +131,92 @@ def dpca_state_space_plot(version, margin_dim_list, condition_list_slice=False, 
     ####
     # ANIMATION
     ####
-
-    # convert plot_params if all margin_dim_list == 'g'
-    n_stages = 1
-    if 'g' in fbt.keys() and not parallel:
-
-        g_ind = dpca_obj.labels.index('g')
-        g_keys = np.unique([k[g_ind] for k in plot_params.keys()])
-        n_stages = len(g_keys)
-        g_order = {'Cue': 0, 'PreDist': 1, 'Gating': 2, 'PostDist': 3, 'Target': 4}
-        sorted_g_keys = sorted(g_keys, key=lambda x: g_order[x])
-        g_keys_order = {g_key: ind for ind, g_key in enumerate(sorted_g_keys)}
-
-        def cast_array_to_new_shape(array, order, num_stages):
-            new_array = np.empty(num_stages * array.shape[0])
-            new_array[:] = np.nan
-            new_array[order * array.shape[0]: (order + 1) * array.shape[0]] = array
-            return new_array
-
-        for key, params in plot_params.items():
-            params['line_points'] = tuple(cast_array_to_new_shape(array, g_keys_order[key[g_ind]], n_stages)
-                                          for array_ind, array
-                                          in enumerate(params['line_points']))
-
-
+    #
+    # # convert plot_params if all margin_dim_list == 'g'
+    # n_stages = 1
+    # if 'g' in fbt.keys() and not parallel:
+    #
+    #     g_ind = dpca_obj.labels.index('g')
+    #     g_keys = np.unique([k[g_ind] for k in plot_params.keys()])
+    #     n_stages = len(g_keys)
+    #     g_order = {'Cue': 0, 'PreDist': 1, 'Gating': 2, 'PostDist': 3, 'Target': 4}
+    #     sorted_g_keys = sorted(g_keys, key=lambda x: g_order[x])
+    #     g_keys_order = {g_key: ind for ind, g_key in enumerate(sorted_g_keys)}
+    #
+    #     def cast_array_to_new_shape(array, order, num_stages):
+    #         new_array = np.empty(num_stages * array.shape[0])
+    #         new_array[:] = np.nan
+    #         new_array[order * array.shape[0]: (order + 1) * array.shape[0]] = array
+    #         return new_array
+    #
+    #     for key, params in plot_params.items():
+    #         params['line_points'] = tuple(cast_array_to_new_shape(array, g_keys_order[key[g_ind]], n_stages)
+    #                                       for array_ind, array
+    #                                       in enumerate(params['line_points']))
+    #
+    #
     ax2 = []
-    if True:
-        # init methods and params
-        line_points_range = lambda line_points, ind_max: [dim_points[:ind_max] for dim_points in line_points]
-        plot_line_params = lambda ax, prm: ax.plot(*line_points_range(prm['line_points'], 1), color=prm['color'],
-                                                   linestyle=prm['linestyle'], linewidth=prm['linewidth'], alpha=prm['alpha'])
+    # if True:
+    #     # init methods and params
+    #     line_points_range = lambda line_points, ind_max: [dim_points[:ind_max] for dim_points in line_points]
+    #     plot_line_params = lambda ax, prm: ax.plot(*line_points_range(prm['line_points'], 1), color=prm['color'],
+    #                                                linestyle=prm['linestyle'], linewidth=prm['linewidth'], alpha=prm['alpha'])
+    #
+    #     def update_lines(t_i, tb_columns, plot_params, lines):
+    #         for line, (cond, line_params) in zip(lines, plot_params.items()):
+    #             # if cond_getter(cond) in cond_list:
+    #             data = np.array(line_points_range(line_params['line_points'], t_i))
+    #             line.set_data(data[:2, :])
+    #             if len(line_params['line_points']) == 3:
+    #                 line.set_3d_properties(data[2, :])
+    #         return lines
+    #
+    #
+    #     # plot
+    #     fig = plt.figure()
+    #     ax = plt.subplot('111') if n_dims < 3 else plt.subplot(111, projection='3d')
+    #     # create line objects
+    #     lines = [plot_line_params(ax, line_params)[0] for line_params in plot_params.values()]
+    #
+    #     # Setting the axes properties
+    #     if n_dims < 3:
+    #         ax.set_xlim(xlim)
+    #         ax.set_ylim(ylim)
+    #     elif n_dims == 3:
+    #         ax.set_xlim3d(xlim)
+    #         ax.set_ylim3d(ylim)
+    #         ax.set_zlim3d(zlim)
+    #         ax.view_init(elev=elev, azim=azim)
+    #
+    #     if legend_show:
+    #         leghand = ax.legend(handles=legend, loc='upper right', bbox_to_anchor=(1, 1), frameon=False, prop={'size': 9})
+    #         for legobj in leghand.legendHandles:
+    #             legobj.set_linewidth(3.0)
+    #     label_list = ['Time ($ms$)' if md[1] < 0 else '{0:s}-PC{1:d}'.format(md[0], md[1] + 1) for md in margin_dim_list]
+    #     ax.set_xlabel(label_list[0])
+    #     ax.set_ylabel(label_list[1])
+    #     if n_dims == 3:
+    #         ax.set_zlabel(label_list[2])
+    #     # plt.title(' - '.join([comp[md[0]] + ' PC' + str(md[1]) for md in margin_dim_list]))
+    #
+    #     if n_dims == 2:
+    #         if margin_dim_list[0][1] < 0:
+    #             ax.spines['top'].set_visible(False)
+    #             ax.spines['right'].set_visible(False)
+    #
+    #
+    #     # set azim, elev
+    #     # set axis labels
+    #
+    #     # Creating the Animation object
+    #     line_ani = FuncAnimation(fig, update_lines, len(tb_columns) * n_stages, fargs=(tb_columns, plot_params, lines),
+    #                              interval=50, repeat_delay=1000, blit=True)
+    #     # plt.show()
+    #     line_ani.save("figures/dPCA/{0:s}.gif".format(ver_str), writer=animation.PillowWriter(fps=18))
 
-        def update_lines(t_i, tb_columns, plot_params, lines):
-            for line, (cond, line_params) in zip(lines, plot_params.items()):
-                # if cond_getter(cond) in cond_list:
-                data = np.array(line_points_range(line_params['line_points'], t_i))
-                line.set_data(data[:2, :])
-                if len(line_params['line_points']) == 3:
-                    line.set_3d_properties(data[2, :])
-            return lines
 
-
-        # plot
-        fig = plt.figure()
-        ax = plt.subplot('111') if n_dims < 3 else plt.subplot(111, projection='3d')
-        # create line objects
-        lines = [plot_line_params(ax, line_params)[0] for line_params in plot_params.values()]
-
-        # Setting the axes properties
-        if n_dims < 3:
-            ax.set_xlim(xlim)
-            ax.set_ylim(ylim)
-        elif n_dims == 3:
-            ax.set_xlim3d(xlim)
-            ax.set_ylim3d(ylim)
-            ax.set_zlim3d(zlim)
-            ax.view_init(elev=elev, azim=azim)
-
-        if legend_show:
-            leghand = ax.legend(handles=legend, loc='upper right', bbox_to_anchor=(1, 1), frameon=False, prop={'size': 9})
-            for legobj in leghand.legendHandles:
-                legobj.set_linewidth(3.0)
-        label_list = ['Time ($ms$)' if md[1] < 0 else '{0:s}-PC{1:d}'.format(md[0], md[1] + 1) for md in margin_dim_list]
-        ax.set_xlabel(label_list[0])
-        ax.set_ylabel(label_list[1])
-        if n_dims == 3:
-            ax.set_zlabel(label_list[2])
-        # plt.title(' - '.join([comp[md[0]] + ' PC' + str(md[1]) for md in margin_dim_list]))
-
-        if n_dims == 2:
-            if margin_dim_list[0][1] < 0:
-                ax.spines['top'].set_visible(False)
-                ax.spines['right'].set_visible(False)
-
-
-        # set azim, elev
-        # set axis labels
-
-        # Creating the Animation object
-        line_ani = FuncAnimation(fig, update_lines, len(tb_columns) * n_stages, fargs=(tb_columns, plot_params, lines),
-                                 interval=50, repeat_delay=1000, blit=True)
-        # plt.show()
-        line_ani.save("figures/dPCA/{0:s}.gif".format(ver_str), writer=animation.PillowWriter(fps=18))
-
-
-        ax2 = ax
-        plt.close()
+        # ax2 = ax
+        # plt.close()
 
 
     return ax1, ax2, dpca_obj
